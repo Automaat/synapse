@@ -21,13 +21,8 @@ async function waitForTasks(page: Page) {
 // Click a SegmentedControl item by label text within a scoped container
 async function clickSegment(page: Page, scope: 'main' | 'dialog', label: string) {
   const container = scope === 'dialog' ? page.getByRole('dialog') : page.getByRole('main')
-  await container.getByRole('radio', { name: label, exact: true }).first().click()
+  await container.locator(`[data-part="item-text"]`, { hasText: label }).first().click()
 }
-
-test.beforeEach(async ({ page }) => {
-  page.on('console', (msg) => console.log(`[browser ${msg.type()}] ${msg.text()}`))
-  page.on('pageerror', (err) => console.log(`[browser error] ${err.message}`))
-})
 
 test.afterAll(async () => {
   await cleanupCreatedTasks()
@@ -121,7 +116,7 @@ test.describe('Task Detail', () => {
     // Tags
     await expect(main.getByText('Tags')).toBeVisible()
     await expect(main.getByText('backend').first()).toBeVisible()
-    await expect(main.getByText('auth')).toBeVisible()
+    await expect(main.getByText('auth', { exact: true })).toBeVisible()
 
     // Body
     await expect(main.getByText('Add JWT middleware to the API router.')).toBeVisible()
