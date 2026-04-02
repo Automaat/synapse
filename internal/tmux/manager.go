@@ -32,6 +32,40 @@ func (m *Manager) SessionExists(name string) bool {
 	return run("has-session", "-t", name) == nil
 }
 
+type SessionInfo struct {
+	Name    string
+	Created string
+}
+
+func (m *Manager) ListSessions() ([]SessionInfo, error) {
+	out, err := output("list-sessions", "-F", "#{session_name}\t#{session_created}")
+	if err != nil {
+		if strings.Contains(err.Error(), "no server running") || strings.Contains(err.Error(), "no sessions") {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var sessions []SessionInfo
+	for line := range strings.SplitSeq(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 2)
+		info := SessionInfo{Name: parts[0]}
+		if len(parts) > 1 {
+			info.Created = parts[1]
+		}
+		sessions = append(sessions, info)
+	}
+	return sessions, nil
+}
+
+func (m *Manager) PaneCommand(name string) (string, error) {
+	return output("list-panes", "-t", name, "-F", "#{pane_current_command}")
+}
+
 func run(args ...string) error {
 	cmd := exec.Command("tmux", args...)
 	if out, err := cmd.CombinedOutput(); err != nil {

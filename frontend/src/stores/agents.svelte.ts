@@ -1,4 +1,4 @@
-import { StartAgent, StopAgent, ListAgents, GetAgentOutput } from '../../wailsjs/go/main/App.js'
+import { StartAgent, StopAgent, ListAgents, GetAgentOutput, DiscoverAgents } from '../../wailsjs/go/main/App.js'
 import { agent } from '../../wailsjs/go/models.js'
 
 class AgentStore {
@@ -28,6 +28,7 @@ class AgentStore {
     this.loading = true
     this.error = ''
     try {
+      await DiscoverAgents()
       const result = await ListAgents()
       const map = new Map<string, agent.Agent>()
       for (const a of result ?? []) {

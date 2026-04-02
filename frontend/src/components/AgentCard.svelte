@@ -46,7 +46,12 @@
 
   <div class="flex items-center gap-2 text-xs text-surface-500">
     <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">{a.mode}</span>
-    <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">task: {a.taskId}</span>
+    {#if a.external}
+      <span class="rounded bg-warning-200 px-1.5 py-0.5 text-warning-800 dark:bg-warning-700 dark:text-warning-200">external</span>
+    {/if}
+    {#if a.taskId}
+      <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">task: {a.taskId}</span>
+    {/if}
     {#if a.costUsd > 0}
       <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">${a.costUsd.toFixed(4)}</span>
     {/if}

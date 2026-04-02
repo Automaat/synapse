@@ -88,20 +88,40 @@
       </div>
 
       <div class="flex flex-wrap gap-6 text-sm">
-        <div class="flex flex-col gap-1">
-          <span class="font-medium text-surface-500">Task</span>
-          <button
-            type="button"
-            class="text-left text-primary-500 hover:underline"
-            onclick={() => onviewtask(a!.taskId)}
-          >
-            {a.taskId}
-          </button>
-        </div>
+        {#if a.taskId}
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-surface-500">Task</span>
+            <button
+              type="button"
+              class="text-left text-primary-500 hover:underline"
+              onclick={() => onviewtask(a!.taskId)}
+            >
+              {a.taskId}
+            </button>
+          </div>
+        {/if}
         <div class="flex flex-col gap-1">
           <span class="font-medium text-surface-500">Mode</span>
           <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">{a.mode}</span>
         </div>
+        {#if a.external}
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-surface-500">Source</span>
+            <span class="rounded bg-warning-200 px-2 py-0.5 text-warning-800 dark:bg-warning-700 dark:text-warning-200">external</span>
+          </div>
+        {/if}
+        {#if a.pid}
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-surface-500">PID</span>
+            <span class="rounded bg-surface-200 px-2 py-0.5 font-mono text-xs dark:bg-surface-700">{a.pid}</span>
+          </div>
+        {/if}
+        {#if a.command}
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-surface-500">Command</span>
+            <span class="max-w-md truncate rounded bg-surface-200 px-2 py-0.5 font-mono text-xs dark:bg-surface-700">{a.command}</span>
+          </div>
+        {/if}
         {#if a.sessionId}
           <div class="flex flex-col gap-1">
             <span class="font-medium text-surface-500">Session</span>
