@@ -35,7 +35,12 @@
   onclick={onclick}
 >
   <div class="mb-2 flex items-start justify-between gap-2">
-    <h3 class="text-sm font-semibold leading-tight font-mono">{a.id}</h3>
+    <div class="flex flex-col gap-0.5">
+      <h3 class="text-sm font-semibold leading-tight">{a.name || a.id}</h3>
+      {#if a.name}
+        <span class="font-mono text-[10px] text-surface-400">{a.id}</span>
+      {/if}
+    </div>
     <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium {resolved.classes}">
       {#if a.state === 'running'}
         <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-success-500"></span>
@@ -48,6 +53,9 @@
     <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">{a.mode}</span>
     {#if a.external}
       <span class="rounded bg-warning-200 px-1.5 py-0.5 text-warning-800 dark:bg-warning-700 dark:text-warning-200">external</span>
+    {/if}
+    {#if a.project}
+      <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">{a.project}</span>
     {/if}
     {#if a.taskId}
       <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">task: {a.taskId}</span>

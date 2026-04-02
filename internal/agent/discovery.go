@@ -1,80 +1,25 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
-	"os/exec"
-	"strconv"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
-type discoveredProcess struct {
-	PID     int
-	Command string
-	Started time.Time
+type claudeSession struct {
+	PID       int    `json:"pid"`
+	SessionID string `json:"sessionId"`
+	CWD       string `json:"cwd"`
+	StartedAt int64  `json:"startedAt"`
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
 }
 
 func (m *Manager) DiscoverAgents() []*Agent {
-	var discovered []*Agent
-
-	discovered = append(discovered, m.discoverTmuxAgents()...)
-	discovered = append(discovered, m.discoverHeadlessAgents()...)
-
-	return discovered
-}
-
-func (m *Manager) discoverTmuxAgents() []*Agent {
-	sessions, err := m.tmux.ListSessions()
-	if err != nil {
-		return nil
-	}
-
-	m.mu.RLock()
-	tracked := make(map[string]bool)
-	for _, a := range m.agents {
-		if a.TmuxSession != "" {
-			tracked[a.TmuxSession] = true
-		}
-	}
-	m.mu.RUnlock()
-
-	var agents []*Agent
-	for _, s := range sessions {
-		if tracked[s.Name] {
-			continue
-		}
-
-		paneCmd, err := m.tmux.PaneCommand(s.Name)
-		if err != nil {
-			continue
-		}
-		if !isClaude(paneCmd) {
-			continue
-		}
-
-		a := &Agent{
-			ID:          fmt.Sprintf("ext-%s", sanitizeID(s.Name)),
-			Mode:        "interactive",
-			State:       StateRunning,
-			TmuxSession: s.Name,
-			External:    true,
-			StartedAt:   time.Now().UTC(),
-			Command:     paneCmd,
-		}
-
-		m.mu.Lock()
-		if _, exists := m.agents[a.ID]; !exists {
-			m.agents[a.ID] = a
-		}
-		m.mu.Unlock()
-
-		agents = append(agents, a)
-	}
-	return agents
-}
-
-func (m *Manager) discoverHeadlessAgents() []*Agent {
-	procs := findClaudeProcesses()
+	sessions := readClaudeSessions()
 
 	m.mu.RLock()
 	trackedPIDs := make(map[int]bool)
@@ -88,20 +33,26 @@ func (m *Manager) discoverHeadlessAgents() []*Agent {
 	}
 	m.mu.RUnlock()
 
-	var agents []*Agent
-	for _, p := range procs {
-		if trackedPIDs[p.PID] {
+	var discovered []*Agent
+	for _, s := range sessions {
+		if trackedPIDs[s.PID] {
+			continue
+		}
+
+		if !processAlive(s.PID) {
 			continue
 		}
 
 		a := &Agent{
-			ID:        fmt.Sprintf("ext-%d", p.PID),
-			Mode:      "headless",
+			ID:        fmt.Sprintf("ext-%d", s.PID),
+			Mode:      sessionKind(s.Kind),
 			State:     StateRunning,
 			External:  true,
-			PID:       p.PID,
-			StartedAt: p.Started,
-			Command:   p.Command,
+			PID:       s.PID,
+			SessionID: s.SessionID,
+			StartedAt: time.UnixMilli(s.StartedAt).UTC(),
+			Name:      agentName(s),
+			Project:   projectName(s.CWD),
 		}
 
 		m.mu.Lock()
@@ -110,66 +61,73 @@ func (m *Manager) discoverHeadlessAgents() []*Agent {
 		}
 		m.mu.Unlock()
 
-		agents = append(agents, a)
+		discovered = append(discovered, a)
 	}
-	return agents
+	return discovered
 }
 
-func findClaudeProcesses() []discoveredProcess {
-	out, err := exec.Command("ps", "-eo", "pid,lstart,command").CombinedOutput()
+func readClaudeSessions() []claudeSession {
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil
 	}
 
-	var procs []discoveredProcess
-	for line := range strings.SplitSeq(string(out), "\n") {
-		line = strings.TrimSpace(line)
-		if !strings.Contains(line, "claude") || strings.Contains(line, "grep") {
+	dir := filepath.Join(home, ".claude", "sessions")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+
+	var sessions []claudeSession
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
 			continue
 		}
 
-		fields := strings.Fields(line)
-		if len(fields) < 6 {
-			continue
-		}
-
-		pid, err := strconv.Atoi(fields[0])
+		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
 		if err != nil {
 			continue
 		}
 
-		// lstart format: "Day Mon DD HH:MM:SS YYYY" (5 fields)
-		timeStr := strings.Join(fields[1:6], " ")
-		started, _ := time.Parse("Mon Jan 2 15:04:05 2006", timeStr)
-
-		cmd := strings.Join(fields[6:], " ")
-
-		// Only match actual claude CLI processes, not editors or this app
-		if !isClaude(cmd) {
+		var s claudeSession
+		if err := json.Unmarshal(data, &s); err != nil {
+			continue
+		}
+		if s.PID == 0 {
 			continue
 		}
 
-		procs = append(procs, discoveredProcess{
-			PID:     pid,
-			Command: cmd,
-			Started: started,
-		})
+		sessions = append(sessions, s)
 	}
-	return procs
+	return sessions
 }
 
-func isClaude(cmd string) bool {
-	lower := strings.ToLower(cmd)
-	return strings.Contains(lower, "claude") &&
-		!strings.Contains(lower, "synapse") &&
-		!strings.Contains(lower, "claude-code-guide")
+func processAlive(pid int) bool {
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	// Signal 0 checks if process exists without actually signaling it
+	return p.Signal(os.Signal(nil)) == nil
 }
 
-func sanitizeID(name string) string {
-	r := strings.NewReplacer("/", "-", " ", "-", ".", "-")
-	id := r.Replace(name)
-	if len(id) > 12 {
-		id = id[:12]
+func agentName(s claudeSession) string {
+	if s.Name != "" {
+		return s.Name
 	}
-	return id
+	return projectName(s.CWD)
+}
+
+func projectName(cwd string) string {
+	if cwd == "" {
+		return ""
+	}
+	return filepath.Base(cwd)
+}
+
+func sessionKind(kind string) string {
+	if kind == "headless" {
+		return "headless"
+	}
+	return "interactive"
 }

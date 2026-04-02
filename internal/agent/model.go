@@ -27,6 +27,8 @@ type Agent struct {
 	External    bool      `json:"external"`
 	PID         int       `json:"pid,omitempty"`
 	Command     string    `json:"command,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	Project     string    `json:"project,omitempty"`
 
 	outputBuffer []StreamEvent
 	cmd          *exec.Cmd

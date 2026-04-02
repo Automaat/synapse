@@ -13,6 +13,8 @@ export namespace agent {
 	    external: boolean;
 	    pid?: number;
 	    command?: string;
+	    name?: string;
+	    project?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Agent(source);
@@ -31,6 +33,8 @@ export namespace agent {
 	        this.external = source["external"];
 	        this.pid = source["pid"];
 	        this.command = source["command"];
+	        this.name = source["name"];
+	        this.project = source["project"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

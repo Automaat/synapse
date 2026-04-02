@@ -64,7 +64,12 @@
   {#if a}
     <div class="flex flex-col gap-6">
       <div class="flex items-start justify-between gap-4">
-        <h1 class="font-mono text-2xl font-bold">{a.id}</h1>
+        <div>
+          <h1 class="text-2xl font-bold">{a.name || a.id}</h1>
+          {#if a.name}
+            <span class="font-mono text-xs text-surface-400">{a.id}</span>
+          {/if}
+        </div>
         <div class="flex items-center gap-2">
           <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium
             {a.state === 'running' ? 'bg-success-200 text-success-800 dark:bg-success-700 dark:text-success-200' :
@@ -104,6 +109,12 @@
           <span class="font-medium text-surface-500">Mode</span>
           <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">{a.mode}</span>
         </div>
+        {#if a.project}
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-surface-500">Project</span>
+            <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">{a.project}</span>
+          </div>
+        {/if}
         {#if a.external}
           <div class="flex flex-col gap-1">
             <span class="font-medium text-surface-500">Source</span>
