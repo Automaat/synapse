@@ -65,9 +65,9 @@
     <div class="flex flex-col gap-6">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold">{a.name || a.id}</h1>
+          <h1 class="text-2xl font-bold">{a.project || a.id}</h1>
           {#if a.name}
-            <span class="font-mono text-xs text-surface-400">{a.id}</span>
+            <span class="text-sm text-surface-400">{a.name}</span>
           {/if}
         </div>
         <div class="flex items-center gap-2">
@@ -113,6 +113,12 @@
           <div class="flex flex-col gap-1">
             <span class="font-medium text-surface-500">Project</span>
             <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">{a.project}</span>
+          </div>
+        {/if}
+        {#if a.name}
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-surface-500">Session Name</span>
+            <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">{a.name}</span>
           </div>
         {/if}
         {#if a.external}

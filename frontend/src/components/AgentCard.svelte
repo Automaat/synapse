@@ -36,9 +36,9 @@
 >
   <div class="mb-2 flex items-start justify-between gap-2">
     <div class="flex flex-col gap-0.5">
-      <h3 class="text-sm font-semibold leading-tight">{a.name || a.id}</h3>
+      <h3 class="text-sm font-semibold leading-tight">{a.project || a.id}</h3>
       {#if a.name}
-        <span class="font-mono text-[10px] text-surface-400">{a.id}</span>
+        <span class="text-xs text-surface-400">{a.name}</span>
       {/if}
     </div>
     <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium {resolved.classes}">

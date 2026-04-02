@@ -52,7 +52,7 @@ func (m *Manager) DiscoverAgents() []*Agent {
 			PID:       s.PID,
 			SessionID: s.SessionID,
 			StartedAt: time.UnixMilli(s.StartedAt).UTC(),
-			Name:      agentName(s),
+			Name:      s.Name,
 			Project:   projectName(s.CWD),
 		}
 
@@ -109,13 +109,6 @@ func processAlive(pid int) bool {
 		return false
 	}
 	return p.Signal(syscall.Signal(0)) == nil
-}
-
-func agentName(s claudeSession) string {
-	if s.Name != "" {
-		return s.Name
-	}
-	return projectName(s.CWD)
 }
 
 func projectName(cwd string) string {
