@@ -79,6 +79,10 @@ func (a *App) ListAgents() []*agent.Agent {
 	return a.agents.ListAgents()
 }
 
+func (a *App) DiscoverAgents() []*agent.Agent {
+	return a.agents.DiscoverAgents()
+}
+
 func (a *App) GetAgentOutput(agentID string) ([]agent.StreamEvent, error) {
 	ag, err := a.agents.GetAgent(agentID)
 	if err != nil {

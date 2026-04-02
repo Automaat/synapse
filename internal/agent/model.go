@@ -24,10 +24,16 @@ type Agent struct {
 	TmuxSession string    `json:"tmuxSession"`
 	CostUSD     float64   `json:"costUsd"`
 	StartedAt   time.Time `json:"startedAt"`
+	External    bool      `json:"external"`
+	PID         int       `json:"pid,omitempty"`
+	Command     string    `json:"command,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	Project     string    `json:"project,omitempty"`
 
 	outputBuffer []StreamEvent
 	cmd          *exec.Cmd
 	cancel       context.CancelFunc
+	sessionCWD   string
 }
 
 func (a *Agent) Output() []StreamEvent {

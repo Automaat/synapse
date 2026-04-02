@@ -5,6 +5,8 @@ import {agent} from '../models';
 
 export function CreateTask(arg1:string,arg2:string,arg3:string):Promise<task.Task>;
 
+export function DiscoverAgents():Promise<Array<agent.Agent>>;
+
 export function GetAgentOutput(arg1:string):Promise<Array<agent.StreamEvent>>;
 
 export function GetTask(arg1:string):Promise<task.Task>;

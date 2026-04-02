@@ -6,6 +6,10 @@ export function CreateTask(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateTask'](arg1, arg2, arg3);
 }
 
+export function DiscoverAgents() {
+  return window['go']['main']['App']['DiscoverAgents']();
+}
+
 export function GetAgentOutput(arg1) {
   return window['go']['main']['App']['GetAgentOutput'](arg1);
 }

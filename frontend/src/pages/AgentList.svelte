@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
-  import { taskStore } from '../stores/tasks.svelte.js'
-  import TaskCard from '../components/TaskCard.svelte'
+  import { agentStore } from '../stores/agents.svelte.js'
+  import AgentCard from '../components/AgentCard.svelte'
 
   interface Props {
     onselect: (id: string) => void
@@ -11,22 +11,22 @@
 
   let filter = $state('all')
 
-  const statuses = [
+  const states = [
     { value: 'all', label: 'All' },
-    { value: 'todo', label: 'Todo' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' },
-    { value: 'blocked', label: 'Blocked' },
+    { value: 'running', label: 'Running' },
+    { value: 'paused', label: 'Waiting' },
+    { value: 'idle', label: 'Idle' },
+    { value: 'stopped', label: 'Stopped' },
   ]
 
-  const filtered = $derived(taskStore.byStatus(filter))
+  const filtered = $derived(agentStore.byState(filter))
 </script>
 
 <div class="flex flex-col gap-4 p-6">
   <SegmentedControl orientation="horizontal" value={filter} onValueChange={(details) => (filter = details.value ?? 'all')}>
     <SegmentedControl.Control>
       <SegmentedControl.Indicator />
-      {#each statuses as s}
+      {#each states as s}
         <SegmentedControl.Item value={s.value}>
           <SegmentedControl.ItemText>{s.label}</SegmentedControl.ItemText>
           <SegmentedControl.ItemHiddenInput />
@@ -35,19 +35,19 @@
     </SegmentedControl.Control>
   </SegmentedControl>
 
-  {#if taskStore.loading}
-    <p class="text-center text-sm opacity-60">Loading tasks...</p>
-  {:else if taskStore.error}
-    <p class="text-center text-sm text-error-500">{taskStore.error}</p>
+  {#if agentStore.loading}
+    <p class="text-center text-sm opacity-60">Loading agents...</p>
+  {:else if agentStore.error}
+    <p class="text-center text-sm text-error-500">{agentStore.error}</p>
   {:else if filtered.length === 0}
     <div class="flex flex-col items-center gap-2 py-16 opacity-50">
-      <p class="text-lg">No tasks</p>
-      <p class="text-sm">Create a task to get started</p>
+      <p class="text-lg">No agents</p>
+      <p class="text-sm">Start an agent from a task to see it here</p>
     </div>
   {:else}
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {#each filtered as t (t.id)}
-        <TaskCard task={t} onclick={() => onselect(t.id)} />
+      {#each filtered as a (a.id)}
+        <AgentCard agent={a} onclick={() => onselect(a.id)} />
       {/each}
     </div>
   {/if}
