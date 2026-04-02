@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/Automaat/synapse/internal/agent"
@@ -91,6 +93,25 @@ func (a *App) ListAgents() []*agent.Agent {
 
 func (a *App) DiscoverAgents() []*agent.Agent {
 	return a.agents.DiscoverAgents()
+}
+
+func (a *App) CaptureAgentPane(agentID string) (string, error) {
+	return a.agents.CapturePane(agentID)
+}
+
+func (a *App) AttachAgent(agentID string) error {
+	ag, err := a.agents.GetAgent(agentID)
+	if err != nil {
+		return err
+	}
+	if ag.TmuxSession == "" {
+		return fmt.Errorf("agent %s has no tmux session", agentID)
+	}
+	script := fmt.Sprintf(`tell application "Terminal"
+	activate
+	do script "tmux attach -t %s"
+end tell`, ag.TmuxSession)
+	return exec.Command("osascript", "-e", script).Run()
 }
 
 func (a *App) GetAgentOutput(agentID string) ([]agent.StreamEvent, error) {

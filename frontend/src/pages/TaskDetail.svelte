@@ -6,6 +6,7 @@
   import { agentStore } from '../stores/agents.svelte.js'
   import StatusBadge from '../components/StatusBadge.svelte'
   import StreamOutput from '../components/StreamOutput.svelte'
+  import TerminalView from '../components/TerminalView.svelte'
 
   interface Props {
     taskId: string
@@ -197,7 +198,11 @@
               </button>
             {/if}
           </div>
-          <StreamOutput agentId={runningAgent.id} />
+          {#if runningAgent.mode === 'interactive' && runningAgent.tmuxSession}
+            <TerminalView agentId={runningAgent.id} />
+          {:else}
+            <StreamOutput agentId={runningAgent.id} />
+          {/if}
         </div>
       {:else}
         <div class="flex flex-col gap-3">
