@@ -23,7 +23,7 @@
 </script>
 
 <div class="flex flex-col gap-4 p-6">
-  <SegmentedControl value={filter} onValueChange={(details) => (filter = details.value ?? 'all')}>
+  <SegmentedControl orientation="horizontal" value={filter} onValueChange={(details) => (filter = details.value ?? 'all')}>
     <SegmentedControl.Indicator />
     {#each states as s}
       <SegmentedControl.Item value={s.value}>

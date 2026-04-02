@@ -13,7 +13,3 @@ html, body {
 #app {
   height: 100%;
 }
-
-[data-scope='radio-group'] [data-part='control'] {
-  flex-direction: row !important;
-}

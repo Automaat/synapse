@@ -108,6 +108,7 @@
       <div class="flex flex-col gap-1">
         <span class="text-sm font-medium text-surface-500">Status</span>
         <SegmentedControl
+          orientation="horizontal"
           value={t.status}
           onValueChange={(details) => { if (details.value) updateStatus(details.value) }}
         >
