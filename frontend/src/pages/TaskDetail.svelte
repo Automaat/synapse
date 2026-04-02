@@ -112,13 +112,15 @@
           value={t.status}
           onValueChange={(details) => { if (details.value) updateStatus(details.value) }}
         >
-          <SegmentedControl.Indicator />
-          {#each statusOptions as s}
-            <SegmentedControl.Item value={s.value}>
-              <SegmentedControl.ItemText>{s.label}</SegmentedControl.ItemText>
-              <SegmentedControl.ItemHiddenInput />
-            </SegmentedControl.Item>
-          {/each}
+          <SegmentedControl.Control>
+            <SegmentedControl.Indicator />
+            {#each statusOptions as s}
+              <SegmentedControl.Item value={s.value}>
+                <SegmentedControl.ItemText>{s.label}</SegmentedControl.ItemText>
+                <SegmentedControl.ItemHiddenInput />
+              </SegmentedControl.Item>
+            {/each}
+          </SegmentedControl.Control>
         </SegmentedControl>
       </div>
 

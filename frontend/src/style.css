@@ -14,8 +14,3 @@ html, body {
   height: 100%;
 }
 
-@layer components {
-  [data-orientation='horizontal'] > [data-part='control'] {
-    flex-direction: row;
-  }
-}

@@ -24,13 +24,15 @@
 
 <div class="flex flex-col gap-4 p-6">
   <SegmentedControl orientation="horizontal" value={filter} onValueChange={(details) => (filter = details.value ?? 'all')}>
-    <SegmentedControl.Indicator />
-    {#each states as s}
-      <SegmentedControl.Item value={s.value}>
-        <SegmentedControl.ItemText>{s.label}</SegmentedControl.ItemText>
-        <SegmentedControl.ItemHiddenInput />
-      </SegmentedControl.Item>
-    {/each}
+    <SegmentedControl.Control>
+      <SegmentedControl.Indicator />
+      {#each states as s}
+        <SegmentedControl.Item value={s.value}>
+          <SegmentedControl.ItemText>{s.label}</SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+      {/each}
+    </SegmentedControl.Control>
   </SegmentedControl>
 
   {#if agentStore.loading}
