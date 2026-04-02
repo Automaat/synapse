@@ -106,6 +106,17 @@ func (m *Manager) ListAgents() []*Agent {
 	return agents
 }
 
+func (m *Manager) CapturePane(agentID string) (string, error) {
+	a, err := m.GetAgent(agentID)
+	if err != nil {
+		return "", err
+	}
+	if a.TmuxSession == "" {
+		return "", fmt.Errorf("agent %s has no tmux session", agentID)
+	}
+	return m.tmux.CapturePaneOutput(a.TmuxSession)
+}
+
 func (m *Manager) Shutdown() {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
