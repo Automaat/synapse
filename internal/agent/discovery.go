@@ -1,12 +1,12 @@
 package agent
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -20,6 +20,8 @@ type claudeSession struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
 }
+
+var nonAlphanumDash = regexp.MustCompile(`[^a-zA-Z0-9-]`)
 
 func (m *Manager) DiscoverAgents() []*Agent {
 	sessions := readClaudeSessions()
@@ -45,7 +47,7 @@ func (m *Manager) DiscoverAgents() []*Agent {
 		if !processAlive(a.PID) {
 			a.State = StateStopped
 		} else {
-			a.State = inferState(a.PID)
+			a.State = inferState(a.sessionCWD, a.SessionID)
 		}
 	}
 	m.mu.Unlock()
@@ -61,15 +63,16 @@ func (m *Manager) DiscoverAgents() []*Agent {
 		}
 
 		a := &Agent{
-			ID:        fmt.Sprintf("ext-%d", s.PID),
-			Mode:      sessionKind(s.Kind),
-			State:     inferState(s.PID),
-			External:  true,
-			PID:       s.PID,
-			SessionID: s.SessionID,
-			StartedAt: time.UnixMilli(s.StartedAt).UTC(),
-			Name:      s.Name,
-			Project:   projectName(s.CWD),
+			ID:         fmt.Sprintf("ext-%d", s.PID),
+			Mode:       sessionKind(s.Kind),
+			State:      inferState(s.CWD, s.SessionID),
+			External:   true,
+			PID:        s.PID,
+			SessionID:  s.SessionID,
+			StartedAt:  time.UnixMilli(s.StartedAt).UTC(),
+			Name:       s.Name,
+			Project:    projectName(s.CWD),
+			sessionCWD: s.CWD,
 		}
 
 		m.mu.Lock()
@@ -83,19 +86,72 @@ func (m *Manager) DiscoverAgents() []*Agent {
 	return discovered
 }
 
-func inferState(pid int) State {
-	if hasChildProcesses(pid) {
+func inferState(cwd, sessionID string) State {
+	lastType := lastMessageType(cwd, sessionID)
+	switch lastType {
+	case "system", "":
+		return StateIdle
+	default:
 		return StateRunning
 	}
-	return StateIdle
 }
 
-func hasChildProcesses(pid int) bool {
-	out, err := exec.Command("pgrep", "-P", strconv.Itoa(pid)).CombinedOutput()
-	if err != nil {
-		return false
+func lastMessageType(cwd, sessionID string) string {
+	if cwd == "" || sessionID == "" {
+		return ""
 	}
-	return len(strings.TrimSpace(string(out))) > 0
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	projectKey := nonAlphanumDash.ReplaceAllString(cwd, "-")
+	jsonlPath := filepath.Join(home, ".claude", "projects", projectKey, sessionID+".jsonl")
+
+	return readLastJSONLType(jsonlPath)
+}
+
+func readLastJSONLType(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = f.Close() }()
+
+	// Seek near end of file and scan for last line
+	info, err := f.Stat()
+	if err != nil {
+		return ""
+	}
+
+	// Read last 8KB — enough for the last JSONL entry
+	offset := max(info.Size()-8192, 0)
+	if _, err := f.Seek(offset, 0); err != nil {
+		return ""
+	}
+
+	var lastLine string
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 256*1024)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) != "" {
+			lastLine = line
+		}
+	}
+
+	if lastLine == "" {
+		return ""
+	}
+
+	var msg struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal([]byte(lastLine), &msg); err != nil {
+		return ""
+	}
+	return msg.Type
 }
 
 func readClaudeSessions() []claudeSession {

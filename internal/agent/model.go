@@ -33,6 +33,7 @@ type Agent struct {
 	outputBuffer []StreamEvent
 	cmd          *exec.Cmd
 	cancel       context.CancelFunc
+	sessionCWD   string
 }
 
 func (a *Agent) Output() []StreamEvent {
