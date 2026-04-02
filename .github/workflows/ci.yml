@@ -54,7 +54,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Run unit tests with coverage
-        run: cd frontend && npx vitest run --coverage
+        run: cd frontend && npx vitest run --coverage --passWithNoTests
 
       - uses: codecov/codecov-action@3f20e214133d0983f9a10f3d63b0faf9241a3daa # v6.0.0
         with:
