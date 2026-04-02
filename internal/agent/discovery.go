@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -34,6 +36,20 @@ func (m *Manager) DiscoverAgents() []*Agent {
 	}
 	m.mu.RUnlock()
 
+	// Refresh state of already-tracked external agents
+	m.mu.Lock()
+	for _, a := range m.agents {
+		if !a.External {
+			continue
+		}
+		if !processAlive(a.PID) {
+			a.State = StateStopped
+		} else {
+			a.State = inferState(a.PID)
+		}
+	}
+	m.mu.Unlock()
+
 	var discovered []*Agent
 	for _, s := range sessions {
 		if trackedPIDs[s.PID] {
@@ -47,7 +63,7 @@ func (m *Manager) DiscoverAgents() []*Agent {
 		a := &Agent{
 			ID:        fmt.Sprintf("ext-%d", s.PID),
 			Mode:      sessionKind(s.Kind),
-			State:     StateRunning,
+			State:     inferState(s.PID),
 			External:  true,
 			PID:       s.PID,
 			SessionID: s.SessionID,
@@ -65,6 +81,21 @@ func (m *Manager) DiscoverAgents() []*Agent {
 		discovered = append(discovered, a)
 	}
 	return discovered
+}
+
+func inferState(pid int) State {
+	if hasChildProcesses(pid) {
+		return StateRunning
+	}
+	return StateIdle
+}
+
+func hasChildProcesses(pid int) bool {
+	out, err := exec.Command("pgrep", "-P", strconv.Itoa(pid)).CombinedOutput()
+	if err != nil {
+		return false
+	}
+	return len(strings.TrimSpace(string(out))) > 0
 }
 
 func readClaudeSessions() []claudeSession {
