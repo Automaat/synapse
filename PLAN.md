@@ -156,26 +156,28 @@ func (a *App) GetAgentOutput(agentID string) []agent.StreamEvent
 - [x] Playwright e2e tests (14 tests against wails dev on :34115)
 - [x] GitHub Actions e2e job (macos-15, wails dev + Playwright)
 
-### Phase 3 — Headless Agent
-- `agent/runner_headless.go`: spawn claude -p, parse NDJSON stream
-- `agent/manager.go`: Start/Stop for headless mode
-- Per-task allowed_tools → --allowedTools flag
-- Frontend: AgentDetail + StreamOutput component
-- Wire Wails events for real-time output
+### Phase 3 — Headless Agent [DONE]
+- [x] `agent/runner_headless.go`: spawn claude -p, parse NDJSON stream
+- [x] `agent/manager.go`: Start/Stop for headless mode
+- [x] Per-task allowed_tools → --allowedTools flag
+- [x] Frontend: AgentDetail + StreamOutput component
+- [x] Wire Wails events for real-time output
 
-### Phase 4 — tmux Interactive
-- `tmux/manager.go`: Create/SendKeys/CapturePaneOutput/Kill/Exists
-- Add interactive mode to agent manager
-- Frontend: TerminalView with capture-pane polling + attach button
+### Phase 4 — tmux Interactive [DONE]
+- [x] `tmux/manager.go`: Create/SendKeys/CapturePaneOutput/Kill/Exists
+- [x] Add interactive mode to agent manager
+- [x] Frontend: TerminalView with capture-pane polling + attach button
 
-### Phase 5 — File Watcher
-- `watcher/watcher.go`: fsnotify on tasks/, 200ms debounce
-- Emit task:updated events, frontend auto-refreshes
+### Phase 5 — File Watcher [DONE]
+- [x] `watcher/watcher.go`: fsnotify on tasks/, 200ms debounce
+- [x] Emit task:updated events, frontend auto-refreshes
 
-### Phase 6 — Dashboard + Polish
-- Dashboard page: running agents grid, task status summary, cost tracking
-- Agent pause/resume, graceful shutdown (kill tmux sessions on exit)
-- Error handling, edge cases
+### Phase 6 — Dashboard + Polish [DONE]
+- [x] Dashboard page: running agents grid, task status summary, cost tracking
+- [x] Dashboard as default landing page with nav rail entry
+- [x] Graceful shutdown (kill tmux sessions on exit — already in manager.Shutdown())
+- Agent pause/resume — deferred (requires claude CLI support)
+- Error handling improvements — ongoing
 
 ### Phase 7 — GitHub (future)
 - `github/interface.go` interface definition

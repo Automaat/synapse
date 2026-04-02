@@ -3,6 +3,7 @@
   import { EventsOn } from '../../wailsjs/runtime/runtime.js'
   import { agentStore } from '../stores/agents.svelte.js'
   import StreamOutput from '../components/StreamOutput.svelte'
+  import TerminalView from '../components/TerminalView.svelte'
 
   interface Props {
     agentId: string
@@ -151,7 +152,7 @@
         {#if a.costUsd > 0}
           <div class="flex flex-col gap-1">
             <span class="font-medium text-surface-500">Cost</span>
-            <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">${a.costUsd.toFixed(4)}</span>
+            <span class="rounded bg-surface-200 px-2 py-0.5 dark:bg-surface-700">${a.costUsd.toFixed(2)}</span>
           </div>
         {/if}
         <div class="flex flex-col gap-1">
@@ -162,7 +163,11 @@
 
       <div class="flex flex-col gap-2">
         <span class="text-sm font-medium text-surface-500">Output</span>
-        <StreamOutput agentId={agentId} />
+        {#if a.mode === 'interactive' && a.tmuxSession}
+          <TerminalView agentId={agentId} />
+        {:else}
+          <StreamOutput agentId={agentId} />
+        {/if}
       </div>
     </div>
   {:else if !error}

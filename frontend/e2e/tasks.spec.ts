@@ -14,6 +14,12 @@ async function cleanupCreatedTasks() {
   }
 }
 
+async function goToTaskList(page: Page) {
+  await page.goto('/')
+  await page.locator('[data-part="trigger"]', { hasText: 'Tasks' }).click()
+  await page.waitForSelector('button:has(h3), :text("No tasks")', { timeout: 10_000 })
+}
+
 async function waitForTasks(page: Page) {
   await page.waitForSelector('button:has(h3), :text("No tasks")', { timeout: 10_000 })
 }
@@ -30,8 +36,7 @@ test.afterAll(async () => {
 
 test.describe('Task List', () => {
   test('displays sample tasks on load', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await expect(page.getByText('Implement auth middleware')).toBeVisible()
     await expect(page.getByText('Write API integration tests')).toBeVisible()
@@ -39,8 +44,7 @@ test.describe('Task List', () => {
   })
 
   test('shows status badges with correct labels', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await expect(page.getByText('Todo').first()).toBeVisible()
     await expect(page.getByText('In Progress').first()).toBeVisible()
@@ -48,15 +52,14 @@ test.describe('Task List', () => {
   })
 
   test('shows app bar with Tasks title and New Task button', async ({ page }) => {
-    await page.goto('/')
+    await goToTaskList(page)
 
     await expect(page.locator('h2', { hasText: 'Tasks' })).toBeVisible()
     await expect(page.getByText('+ New Task')).toBeVisible()
   })
 
   test('filters tasks by status', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     // Click "Todo" filter
     await clickSegment(page, 'main', 'Todo')
@@ -77,8 +80,7 @@ test.describe('Task List', () => {
   })
 
   test('shows empty state when filter matches nothing', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     // "Done" filter — no sample tasks have done status
     await clickSegment(page, 'main', 'Done')
@@ -90,8 +92,7 @@ test.describe('Task List', () => {
 
 test.describe('Task Detail', () => {
   test('navigates to task detail on card click', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await page.getByText('Implement auth middleware').click()
 
@@ -101,8 +102,7 @@ test.describe('Task Detail', () => {
   })
 
   test('shows task metadata', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await page.getByText('Implement auth middleware').click()
     await expect(page.locator('h1', { hasText: 'Implement auth middleware' })).toBeVisible()
@@ -127,8 +127,7 @@ test.describe('Task Detail', () => {
   })
 
   test('navigates back to list', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await page.getByText('Implement auth middleware').click()
     await expect(page.locator('h1', { hasText: 'Implement auth middleware' })).toBeVisible()
@@ -140,8 +139,7 @@ test.describe('Task Detail', () => {
   })
 
   test('changes task status via segmented control', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await page.getByText('Implement auth middleware').click()
     await expect(page.locator('h1', { hasText: 'Implement auth middleware' })).toBeVisible()
@@ -168,7 +166,7 @@ test.describe('Task Detail', () => {
 
 test.describe('Create Task', () => {
   test('opens and closes create dialog', async ({ page }) => {
-    await page.goto('/')
+    await goToTaskList(page)
 
     await page.getByText('+ New Task').click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -180,8 +178,7 @@ test.describe('Create Task', () => {
   })
 
   test('creates a new task and navigates to detail', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await page.getByText('+ New Task').click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -211,7 +208,7 @@ test.describe('Create Task', () => {
   })
 
   test('create button is disabled without title', async ({ page }) => {
-    await page.goto('/')
+    await goToTaskList(page)
 
     await page.getByText('+ New Task').click()
     await expect(page.getByPlaceholder('Task title...')).toBeVisible()
@@ -234,8 +231,7 @@ test.describe('Navigation Rail', () => {
   })
 
   test('clicking tasks nav returns to task list from detail', async ({ page }) => {
-    await page.goto('/')
-    await waitForTasks(page)
+    await goToTaskList(page)
 
     await page.getByText('Implement auth middleware').click()
     await expect(page.locator('h1', { hasText: 'Implement auth middleware' })).toBeVisible()

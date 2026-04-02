@@ -3,6 +3,10 @@
 import {task} from '../models';
 import {agent} from '../models';
 
+export function AttachAgent(arg1:string):Promise<void>;
+
+export function CaptureAgentPane(arg1:string):Promise<string>;
+
 export function CreateTask(arg1:string,arg2:string,arg3:string):Promise<task.Task>;
 
 export function DiscoverAgents():Promise<Array<agent.Agent>>;

@@ -8,17 +8,20 @@
   import AgentList from './pages/AgentList.svelte'
   import AgentDetail from './pages/AgentDetail.svelte'
   import CreateTaskDialog from './components/CreateTaskDialog.svelte'
+  import Dashboard from './pages/Dashboard.svelte'
 
   type Page =
+    | { kind: 'dashboard' }
     | { kind: 'task-list' }
     | { kind: 'task-detail'; taskId: string }
     | { kind: 'agent-list' }
     | { kind: 'agent-detail'; agentId: string }
 
-  let page = $state<Page>({ kind: 'task-list' })
+  let page = $state<Page>({ kind: 'dashboard' })
   let dialogOpen = $state(false)
 
   const pageTitle = $derived(
+    page.kind === 'dashboard' ? 'Dashboard' :
     page.kind === 'task-list' ? 'Tasks' :
     page.kind === 'task-detail' ? 'Task Detail' :
     page.kind === 'agent-list' ? 'Agents' :
@@ -49,6 +52,15 @@
       <span class="p-2 text-lg font-bold">S</span>
     </Navigation.Header>
     <Navigation.Content>
+      <Navigation.Trigger
+        onclick={() => (page = { kind: 'dashboard' })}
+        data-active={page.kind === 'dashboard' || undefined}
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        <Navigation.TriggerText>Dashboard</Navigation.TriggerText>
+      </Navigation.Trigger>
       <Navigation.Trigger
         onclick={() => (page = { kind: 'task-list' })}
         data-active={page.kind === 'task-list' || page.kind === 'task-detail' || undefined}
@@ -91,7 +103,12 @@
     </AppBar>
 
     <main class="flex-1 overflow-y-auto">
-      {#if page.kind === 'task-list'}
+      {#if page.kind === 'dashboard'}
+        <Dashboard
+          onviewagent={(id) => (page = { kind: 'agent-detail', agentId: id })}
+          onviewtask={(id) => (page = { kind: 'task-detail', taskId: id })}
+        />
+      {:else if page.kind === 'task-list'}
         <TaskList onselect={(id) => (page = { kind: 'task-detail', taskId: id })} />
       {:else if page.kind === 'task-detail'}
         <TaskDetail
