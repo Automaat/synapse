@@ -65,9 +65,6 @@ linters:
       require-explanation: true
       require-specific: true
 
-    modernize:
-      all: true
-
   exclusions:
     presets:
       - common-false-positives
