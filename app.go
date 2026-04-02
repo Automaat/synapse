@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/Automaat/synapse/internal/agent"
@@ -17,16 +18,21 @@ type App struct {
 	agents   *agent.Manager
 	watcher  *watcher.Watcher
 	tasksDir string
+	logger   *slog.Logger
+	logDir   string
 }
 
-func NewApp() *App {
+func NewApp(logger *slog.Logger, logDir string) *App {
 	return &App{
 		tasksDir: "tasks",
+		logger:   logger,
+		logDir:   logDir,
 	}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.logger.Info("app.starting")
 
 	absDir, _ := filepath.Abs(a.tasksDir)
 	store, _ := task.NewStore(absDir)
@@ -36,15 +42,19 @@ func (a *App) startup(ctx context.Context) {
 	emit := func(event string, data any) {
 		runtime.EventsEmit(ctx, event, data)
 	}
-	a.agents = agent.NewManager(ctx, tm, emit)
+	a.agents = agent.NewManager(ctx, tm, emit, a.logger, a.logDir)
 
-	w := watcher.New(absDir, emit)
+	w := watcher.New(absDir, emit, a.logger)
 	a.watcher = w
 	_ = w.Start(ctx)
+
+	a.logger.Info("app.started")
 }
 
 func (a *App) shutdown(_ context.Context) {
+	a.logger.Info("app.stopping")
 	a.agents.Shutdown()
+	a.logger.Info("app.stopped")
 }
 
 func (a *App) ListTasks() ([]task.Task, error) {

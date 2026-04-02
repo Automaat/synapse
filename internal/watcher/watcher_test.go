@@ -2,6 +2,8 @@ package watcher
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -10,8 +12,12 @@ import (
 	"time"
 )
 
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
 func TestNew(t *testing.T) {
-	w := New("/tmp/test", func(string, any) {})
+	w := New("/tmp/test", func(string, any) {}, discardLogger())
 	if w == nil {
 		t.Fatal("watcher is nil")
 	}
@@ -21,7 +27,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestStartInvalidDir(t *testing.T) {
-	w := New("/nonexistent/path/that/does/not/exist", func(string, any) {})
+	w := New("/nonexistent/path/that/does/not/exist", func(string, any) {}, discardLogger())
 	err := w.Start(t.Context())
 	if err == nil {
 		t.Fatal("expected error for nonexistent dir")
@@ -40,7 +46,7 @@ func TestStartAndEmitCreate(t *testing.T) {
 		events = append(events, event)
 	}
 
-	w := New(dir, emit)
+	w := New(dir, emit, discardLogger())
 	if err := w.Start(t.Context()); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -97,7 +103,7 @@ func TestStartAndEmitDelete(t *testing.T) {
 		events = append(events, event)
 	}
 
-	w := New(dir, emit)
+	w := New(dir, emit, discardLogger())
 	if err := w.Start(t.Context()); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -133,7 +139,7 @@ func TestNonMarkdownIgnored(t *testing.T) {
 		mu.Unlock()
 	}
 
-	w := New(dir, emit)
+	w := New(dir, emit, discardLogger())
 	if err := w.Start(t.Context()); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -162,7 +168,7 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(200*time.Millisecond))
 	defer cancel()
 
-	w := New(dir, func(string, any) {})
+	w := New(dir, func(string, any) {}, discardLogger())
 	if err := w.Start(ctx); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -185,7 +191,7 @@ func TestDebounce(t *testing.T) {
 		}
 	}
 
-	w := New(dir, emit)
+	w := New(dir, emit, discardLogger())
 	if err := w.Start(t.Context()); err != nil {
 		t.Fatalf("Start: %v", err)
 	}

@@ -8,6 +8,11 @@ import (
 	"github.com/Automaat/synapse/internal/tmux"
 )
 
+func testManagerWithEmit(t *testing.T, emit EmitFunc) *Manager {
+	t.Helper()
+	return NewManager(t.Context(), tmux.NewManager(), emit, discardLogger(), t.TempDir())
+}
+
 func TestHandleError(t *testing.T) {
 	var emittedEvent string
 	var emittedData any
@@ -16,7 +21,7 @@ func TestHandleError(t *testing.T) {
 		emittedData = data
 	}
 
-	m := NewManager(t.Context(), tmux.NewManager(), emit)
+	m := testManagerWithEmit(t, emit)
 
 	a := &Agent{
 		ID:    "test-123",
@@ -55,7 +60,7 @@ func TestRunHeadlessFailsToStart(t *testing.T) {
 		lastEvent = event
 	}
 
-	m := NewManager(t.Context(), tmux.NewManager(), emit)
+	m := testManagerWithEmit(t, emit)
 
 	a := &Agent{
 		ID:    "test-headless",
@@ -74,8 +79,7 @@ func TestRunHeadlessFailsToStart(t *testing.T) {
 }
 
 func TestRunHeadlessWithAllowedTools(t *testing.T) {
-	emit := func(string, any) {}
-	m := NewManager(t.Context(), tmux.NewManager(), emit)
+	m := testManagerWithEmit(t, func(string, any) {})
 
 	a := &Agent{
 		ID:    "test-tools",
@@ -90,8 +94,7 @@ func TestRunHeadlessWithAllowedTools(t *testing.T) {
 }
 
 func TestRunHeadlessWithResume(t *testing.T) {
-	emit := func(string, any) {}
-	m := NewManager(t.Context(), tmux.NewManager(), emit)
+	m := testManagerWithEmit(t, func(string, any) {})
 
 	a := &Agent{
 		ID:        "test-resume",
@@ -111,8 +114,7 @@ func TestRunHeadlessCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer cancel()
 
-	emit := func(string, any) {}
-	m := NewManager(ctx, tmux.NewManager(), emit)
+	m := NewManager(ctx, tmux.NewManager(), func(string, any) {}, discardLogger(), t.TempDir())
 
 	a := &Agent{
 		ID:    "test-cancelled",

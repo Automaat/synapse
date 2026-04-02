@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -18,14 +19,18 @@ type Manager struct {
 	ctx    context.Context
 	tmux   *tmux.Manager
 	emit   EmitFunc
+	logger *slog.Logger
+	logDir string
 }
 
-func NewManager(ctx context.Context, tm *tmux.Manager, emit EmitFunc) *Manager {
+func NewManager(ctx context.Context, tm *tmux.Manager, emit EmitFunc, logger *slog.Logger, logDir string) *Manager {
 	return &Manager{
 		agents: make(map[string]*Agent),
 		ctx:    ctx,
 		tmux:   tm,
 		emit:   emit,
+		logger: logger,
+		logDir: logDir,
 	}
 }
 
@@ -46,6 +51,8 @@ func (m *Manager) StartAgent(taskID, mode, prompt string, allowedTools []string)
 	m.agents[id] = a
 	m.mu.Unlock()
 
+	m.logger.Info("agent.start", "id", id, "taskID", taskID, "mode", mode)
+
 	switch mode {
 	case "headless":
 		go m.runHeadless(ctx, a, prompt, allowedTools)
@@ -56,6 +63,7 @@ func (m *Manager) StartAgent(taskID, mode, prompt string, allowedTools []string)
 			m.mu.Lock()
 			delete(m.agents, id)
 			m.mu.Unlock()
+			m.logger.Error("agent.tmux.create", "id", id, "err", err)
 			return nil, fmt.Errorf("create tmux session: %w", err)
 		}
 	default:
@@ -82,6 +90,7 @@ func (m *Manager) StopAgent(agentID string) error {
 		_ = m.tmux.KillSession(a.TmuxSession)
 	}
 
+	m.logger.Info("agent.stop", "id", agentID)
 	m.emit("agent:state:"+agentID, a)
 	return nil
 }
@@ -109,6 +118,7 @@ func (m *Manager) ListAgents() []*Agent {
 func (m *Manager) Shutdown() {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	m.logger.Info("agent.shutdown", "count", len(m.agents))
 	for _, a := range m.agents {
 		a.cancel()
 		if a.Mode == "interactive" && a.TmuxSession != "" {

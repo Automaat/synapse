@@ -3,6 +3,8 @@ package main
 import (
 	"embed"
 
+	"github.com/Automaat/synapse/internal/config"
+	"github.com/Automaat/synapse/internal/logging"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -12,9 +14,22 @@ import (
 var assets embed.FS
 
 func main() {
-	app := NewApp()
+	cfg, err := config.Load()
+	if err != nil {
+		println("Error loading config:", err.Error())
+		return
+	}
 
-	err := wails.Run(&options.App{
+	logger, cleanup, err := logging.New(cfg.Logging)
+	if err != nil {
+		println("Error initializing logger:", err.Error())
+		return
+	}
+	defer cleanup()
+
+	app := NewApp(logger, cfg.Logging.Dir)
+
+	err = wails.Run(&options.App{
 		Title:  "Synapse",
 		Width:  1280,
 		Height: 800,
@@ -30,6 +45,7 @@ func main() {
 	})
 
 	if err != nil {
+		logger.Error("app.fatal", "err", err)
 		println("Error:", err.Error())
 	}
 }
