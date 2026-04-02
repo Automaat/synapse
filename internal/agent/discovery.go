@@ -86,49 +86,63 @@ func (m *Manager) DiscoverAgents() []*Agent {
 	return discovered
 }
 
+const staleThreshold = 10 * time.Second
+
+type sessionState struct {
+	msgType    string
+	hasToolUse bool
+	stale      bool
+}
+
 func inferState(cwd, sessionID string) State {
-	lastType := lastMessageType(cwd, sessionID)
-	switch lastType {
-	case "system", "":
+	ss := readSessionState(cwd, sessionID)
+
+	switch {
+	case ss.msgType == "system" || ss.msgType == "":
+		return StateIdle
+	case ss.msgType == "assistant" && ss.hasToolUse && ss.stale:
+		return StatePaused
+	case ss.stale:
 		return StateIdle
 	default:
 		return StateRunning
 	}
 }
 
-func lastMessageType(cwd, sessionID string) string {
+func readSessionState(cwd, sessionID string) sessionState {
 	if cwd == "" || sessionID == "" {
-		return ""
+		return sessionState{}
 	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ""
+		return sessionState{}
 	}
 
 	projectKey := nonAlphanumDash.ReplaceAllString(cwd, "-")
-	jsonlPath := filepath.Join(home, ".claude", "projects", projectKey, sessionID+".jsonl")
+	path := filepath.Join(home, ".claude", "projects", projectKey, sessionID+".jsonl")
 
-	return readLastJSONLType(jsonlPath)
+	return readLastJSONL(path)
 }
 
-func readLastJSONLType(path string) string {
+func readLastJSONL(path string) sessionState {
 	f, err := os.Open(path)
 	if err != nil {
-		return ""
+		return sessionState{}
 	}
 	defer func() { _ = f.Close() }()
 
-	// Seek near end of file and scan for last line
 	info, err := f.Stat()
 	if err != nil {
-		return ""
+		return sessionState{}
 	}
+
+	stale := time.Since(info.ModTime()) > staleThreshold
 
 	// Read last 8KB — enough for the last JSONL entry
 	offset := max(info.Size()-8192, 0)
 	if _, err := f.Seek(offset, 0); err != nil {
-		return ""
+		return sessionState{}
 	}
 
 	var lastLine string
@@ -142,16 +156,34 @@ func readLastJSONLType(path string) string {
 	}
 
 	if lastLine == "" {
-		return ""
+		return sessionState{}
 	}
 
 	var msg struct {
-		Type string `json:"type"`
+		Type    string `json:"type"`
+		Message struct {
+			Content []struct {
+				Type string `json:"type"`
+			} `json:"content"`
+		} `json:"message"`
 	}
 	if err := json.Unmarshal([]byte(lastLine), &msg); err != nil {
-		return ""
+		return sessionState{}
 	}
-	return msg.Type
+
+	hasToolUse := false
+	for _, c := range msg.Message.Content {
+		if c.Type == "tool_use" {
+			hasToolUse = true
+			break
+		}
+	}
+
+	return sessionState{
+		msgType:    msg.Type,
+		hasToolUse: hasToolUse,
+		stale:      stale,
+	}
 }
 
 func readClaudeSessions() []claudeSession {

@@ -14,8 +14,9 @@
   const states = [
     { value: 'all', label: 'All' },
     { value: 'running', label: 'Running' },
-    { value: 'stopped', label: 'Stopped' },
+    { value: 'paused', label: 'Waiting' },
     { value: 'idle', label: 'Idle' },
+    { value: 'stopped', label: 'Stopped' },
   ]
 
   const filtered = $derived(agentStore.byState(filter))
