@@ -63,7 +63,7 @@ type SessionInfo struct {
 func (m *Manager) ListSessions() ([]SessionInfo, error) {
 	out, err := output("list-sessions", "-F", "#{session_name}\t#{session_created}")
 	if err != nil {
-		if strings.Contains(err.Error(), "no server running") || strings.Contains(err.Error(), "no sessions") {
+		if strings.Contains(err.Error(), "no server running") || strings.Contains(err.Error(), "no sessions") || strings.Contains(err.Error(), "No such file or directory") {
 			return nil, nil
 		}
 		return nil, err
