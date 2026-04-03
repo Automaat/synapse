@@ -2,10 +2,16 @@ package agent
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/Automaat/synapse/internal/tmux"
 )
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 func newTestManager(t *testing.T) (mgr *Manager, events *[]string) {
 	t.Helper()
@@ -17,7 +23,7 @@ func newTestManager(t *testing.T) (mgr *Manager, events *[]string) {
 		*emitted = append(*emitted, event)
 	}
 
-	m := NewManager(ctx, tmux.NewManager(), emit)
+	m := NewManager(ctx, tmux.NewManager(), emit, discardLogger(), t.TempDir())
 	return m, emitted
 }
 

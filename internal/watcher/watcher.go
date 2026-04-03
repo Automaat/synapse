@@ -2,7 +2,7 @@ package watcher
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -12,12 +12,13 @@ import (
 type EmitFunc func(event string, data any)
 
 type Watcher struct {
-	dir  string
-	emit EmitFunc
+	dir    string
+	emit   EmitFunc
+	logger *slog.Logger
 }
 
-func New(dir string, emit EmitFunc) *Watcher {
-	return &Watcher{dir: dir, emit: emit}
+func New(dir string, emit EmitFunc, logger *slog.Logger) *Watcher {
+	return &Watcher{dir: dir, emit: emit, logger: logger}
 }
 
 func (w *Watcher) Start(ctx context.Context) error {
@@ -72,7 +73,7 @@ func (w *Watcher) loop(ctx context.Context, fw *fsnotify.Watcher) {
 			if !ok {
 				return
 			}
-			log.Printf("watcher error: %v", err)
+			w.logger.Error("watcher.error", "err", err)
 		}
 	}
 }

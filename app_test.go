@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+	"log/slog"
 	"path/filepath"
 	"testing"
 
@@ -8,6 +10,10 @@ import (
 	"github.com/Automaat/synapse/internal/task"
 	"github.com/Automaat/synapse/internal/tmux"
 )
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 func setupApp(t *testing.T) *App {
 	t.Helper()
@@ -18,19 +24,21 @@ func setupApp(t *testing.T) *App {
 		t.Fatal(err)
 	}
 
+	logger := discardLogger()
 	emit := func(string, any) {}
 	tm := tmux.NewManager()
-	mgr := agent.NewManager(t.Context(), tm, emit)
+	mgr := agent.NewManager(t.Context(), tm, emit, logger, t.TempDir())
 
 	return &App{
 		tasks:    store,
 		agents:   mgr,
 		tasksDir: dir,
+		logger:   logger,
 	}
 }
 
 func TestNewApp(t *testing.T) {
-	a := NewApp()
+	a := NewApp(discardLogger(), t.TempDir())
 	if a == nil {
 		t.Fatal("NewApp returned nil")
 	}
@@ -216,9 +224,7 @@ func TestShutdown(t *testing.T) {
 
 func TestStartup(t *testing.T) {
 	dir := t.TempDir()
-	a := &App{tasksDir: filepath.Join(dir, "tasks")}
-	// startup needs wails runtime for EventsEmit — skip the full startup
-	// but test that NewApp + tasksDir is valid
+	a := &App{tasksDir: filepath.Join(dir, "tasks"), logger: discardLogger()}
 	if a.tasksDir == "" {
 		t.Error("tasksDir should not be empty")
 	}
