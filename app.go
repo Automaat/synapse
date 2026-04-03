@@ -258,7 +258,15 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 	}
 
 	fullPrompt := fmt.Sprintf("# Task: %s\n\n%s\n\n---\n\n%s", t.Title, t.Body, prompt)
-	ag, err := a.agents.StartAgentInDir(taskID, t.Title, mode, fullPrompt, t.AllowedTools, dir)
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID:       taskID,
+		Name:         t.Title,
+		Mode:         mode,
+		Prompt:       fullPrompt,
+		AllowedTools: t.AllowedTools,
+		Dir:          dir,
+		Model:        "sonnet",
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -946,13 +954,19 @@ func (a *App) PlanTask(id string) error {
 
 	a.logger.Info("plan.start", "task_id", t.ID, "title", t.Title)
 
-	planTools := []string{"Bash", "Read", "Glob", "Grep"}
-	var ag *agent.Agent
-	if dir != "" {
-		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, planTools, dir)
-	} else {
-		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, planTools, config.HomeDir())
+	planDir := dir
+	if planDir == "" {
+		planDir = config.HomeDir()
 	}
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID:       t.ID,
+		Name:         "plan:" + t.Title,
+		Mode:         "headless",
+		Prompt:       prompt,
+		AllowedTools: []string{"Bash", "Read", "Glob", "Grep"},
+		Dir:          planDir,
+		Model:        "opus",
+	})
 	if err != nil {
 		return err
 	}

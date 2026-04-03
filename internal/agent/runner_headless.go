@@ -25,6 +25,10 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 		args = append(args, "--dangerously-skip-permissions")
 	}
 
+	if a.Model != "" {
+		args = append(args, "--model", a.Model)
+	}
+
 	cmd := exec.CommandContext(ctx, "claude", args...)
 	if a.sessionCWD != "" {
 		cmd.Dir = a.sessionCWD
