@@ -96,11 +96,11 @@
   }
 
   const triaging = $derived(
-    agentStore.list.some((a) => a.taskId === taskId && a.name?.startsWith('triage:') && a.state === 'running')
+    (agentStore.list ?? []).some((a) => a.taskId === taskId && a.name?.startsWith('triage:') && a.state === 'running')
   )
 
   const evaluating = $derived(
-    agentStore.list.some((a) => a.taskId === taskId && a.name?.startsWith('eval:') && a.state === 'running')
+    (agentStore.list ?? []).some((a) => a.taskId === taskId && a.name?.startsWith('eval:') && a.state === 'running')
   )
 
   let expandedRun = $state<string | null>(null)

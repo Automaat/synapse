@@ -10,11 +10,11 @@
   const { task: t, onclick }: Props = $props()
 
   const triaging = $derived(
-    agentStore.list.some((a) => a.taskId === t.id && a.name?.startsWith('triage:') && a.state === 'running')
+    (agentStore.list ?? []).some((a) => a.taskId === t.id && a.name?.startsWith('triage:') && a.state === 'running')
   )
 
   const evaluating = $derived(
-    agentStore.list.some((a) => a.taskId === t.id && a.name?.startsWith('eval:') && a.state === 'running')
+    (agentStore.list ?? []).some((a) => a.taskId === t.id && a.name?.startsWith('eval:') && a.state === 'running')
   )
 
   function timeAgo(date: any): string {
