@@ -104,3 +104,75 @@ func TestLoadMissingConfigFile(t *testing.T) {
 		t.Errorf("Level = %q, want %q", cfg.Logging.Level, "info")
 	}
 }
+
+func TestLoadInvalidYAML(t *testing.T) {
+	dir := t.TempDir()
+	cfgDir := filepath.Join(dir, "synapse")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte(":{bad yaml"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for invalid YAML")
+	}
+}
+
+func TestLoadEmptyDirFallsBackToDefault(t *testing.T) {
+	dir := t.TempDir()
+	cfgDir := filepath.Join(dir, "synapse")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// YAML with empty dir field
+	if err := os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte("logging:\n  dir: \"\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Logging.Dir == "" {
+		t.Error("Dir should fall back to default, not be empty")
+	}
+}
+
+func TestConfigPathWithoutXDG(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "")
+
+	path := configPath()
+	home, _ := os.UserHomeDir()
+	want := filepath.Join(home, ".config", "synapse", "config.yaml")
+	if path != want {
+		t.Errorf("configPath() = %q, want %q", path, want)
+	}
+}
+
+func TestDefaultLogDirWithoutXDG(t *testing.T) {
+	t.Setenv("XDG_DATA_HOME", "")
+
+	dir := defaultLogDir()
+	home, _ := os.UserHomeDir()
+	want := filepath.Join(home, ".local", "share", "synapse", "logs")
+	if dir != want {
+		t.Errorf("defaultLogDir() = %q, want %q", dir, want)
+	}
+}
+
+func TestDefaultLogDirWithXDG(t *testing.T) {
+	t.Setenv("XDG_DATA_HOME", "/custom/data")
+
+	dir := defaultLogDir()
+	want := filepath.Join("/custom/data", "synapse", "logs")
+	if dir != want {
+		t.Errorf("defaultLogDir() = %q, want %q", dir, want)
+	}
+}
