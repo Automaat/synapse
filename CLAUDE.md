@@ -25,6 +25,13 @@ synapse/
 │   │   └── watcher.go       # fsnotify on tasks/ dir, debounced
 │   └── github/
 │       └── interface.go     # Future: GitHub issue sync interface
+├── cmd/
+│   └── synapse-cli/         # CLI for task CRUD (used by Claude Code skills)
+│       └── main.go
+├── .claude/
+│   └── skills/              # Claude Code skills (auto-copied to ~/.synapse/skills on start)
+│       ├── synapse-tasks.md # Task CRUD skill
+│       └── synapse-triage.md # Triage workflow skill
 ├── tasks/                   # Markdown task files (runtime data)
 ├── frontend/
 │   ├── src/
@@ -194,6 +201,36 @@ go test ./...
 # Install frontend deps
 cd frontend && npm install
 ```
+
+## CLI (`synapse-cli`)
+
+Standalone binary for task CRUD, used by Claude Code skills. Installed via `go install ./cmd/synapse-cli`.
+
+```bash
+synapse-cli [--json] <command> [flags]
+
+list     [--status STATUS] [--tag TAG]
+get      <id>
+create   --title TITLE [--body BODY] [--mode MODE] [--tags t1,t2]
+update   <id> [--title T] [--status S] [--body B] [--mode M] [--tags T]
+delete   <id>
+```
+
+- `--json` for machine-parseable output (used by skills)
+- Reuses `internal/task.Store` + `internal/config.Load()` — same validation as GUI
+- `mise run dev` auto-installs latest CLI before starting wails
+
+### Skills
+
+Project-local Claude Code skills in `.claude/skills/`:
+- `synapse-tasks.md` — task CRUD via CLI (`/synapse-tasks`)
+- `synapse-triage.md` — triage workflow (`/synapse-triage`)
+
+Skills are auto-copied to `~/.synapse/skills/` on app startup (via `syncSkills()` in `app.go`).
+
+### Orchestrator Brain
+
+`orchestrator/CLAUDE.md` — system instructions for Claude Code orchestrator sessions. Copied to `~/.synapse/CLAUDE.md` on app start. Covers: triage rules, dispatch logic, monitoring, failure handling, escalation criteria.
 
 ## Build Order
 

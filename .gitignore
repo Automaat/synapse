@@ -22,4 +22,5 @@ frontend/test-results/
 frontend/playwright-report/
 
 # Binary
-synapse
+/synapse
+/synapse-cli

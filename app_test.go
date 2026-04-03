@@ -38,7 +38,7 @@ func setupApp(t *testing.T) *App {
 
 func TestNewApp(t *testing.T) {
 	tasksDir := t.TempDir()
-	a := NewApp(discardLogger(), t.TempDir(), tasksDir)
+	a := NewApp(discardLogger(), t.TempDir(), tasksDir, t.TempDir(), "")
 	if a == nil {
 		t.Fatal("NewApp returned nil")
 	}
@@ -223,7 +223,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestStartup(t *testing.T) {
-	a := NewApp(discardLogger(), t.TempDir(), t.TempDir())
+	a := NewApp(discardLogger(), t.TempDir(), t.TempDir(), t.TempDir(), "")
 	if a.tasksDir == "" {
 		t.Error("tasksDir should not be empty")
 	}

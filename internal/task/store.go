@@ -108,6 +108,9 @@ func (s *Store) Update(id string, updates map[string]any) (Task, error) {
 	if v, ok := updates["body"].(string); ok {
 		t.Body = v
 	}
+	if v, ok := updates["tags"].([]string); ok {
+		t.Tags = v
+	}
 
 	data, err := Marshal(t)
 	if err != nil {

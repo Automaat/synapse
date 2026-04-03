@@ -60,6 +60,7 @@ export namespace agent {
 	    content?: string;
 	    session_id?: string;
 	    cost_usd?: number;
+	    subtype?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new StreamEvent(source);
@@ -71,6 +72,7 @@ export namespace agent {
 	        this.content = source["content"];
 	        this.session_id = source["session_id"];
 	        this.cost_usd = source["cost_usd"];
+	        this.subtype = source["subtype"];
 	    }
 	}
 

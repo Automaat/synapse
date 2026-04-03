@@ -16,6 +16,10 @@ func (m *Manager) CreateSession(name, cmd string) error {
 	return run("new-session", "-d", "-s", name, "-x", "200", "-y", "50", cmd)
 }
 
+func (m *Manager) CreateSessionInDir(name, cmd, dir string) error {
+	return run("new-session", "-d", "-s", name, "-x", "200", "-y", "50", "-c", dir, cmd)
+}
+
 func (m *Manager) SendKeys(name, keys string) error {
 	return run("send-keys", "-t", name, keys, "Enter")
 }

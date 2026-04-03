@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 )
 
 func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allowedTools []string) {
-	args := []string{"-p", prompt, "--output-format", "stream-json"}
+	args := []string{"-p", prompt, "--output-format", "stream-json", "--verbose"}
 
 	if a.SessionID != "" {
 		args = append(args, "--resume", a.SessionID)
@@ -25,6 +26,9 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 	}
 
 	cmd := exec.CommandContext(ctx, "claude", args...)
+	if a.sessionCWD != "" {
+		cmd.Dir = a.sessionCWD
+	}
 	a.cmd = cmd
 
 	stdout, err := cmd.StdoutPipe()
@@ -33,12 +37,15 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 		return
 	}
 
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
+
 	if err := cmd.Start(); err != nil {
 		m.handleError(a, fmt.Errorf("start claude: %w", err))
 		return
 	}
 
-	m.logger.Info("agent.headless.start", "id", a.ID, "pid", cmd.Process.Pid)
+	m.logger.Info("agent.headless.start", "id", a.ID, "pid", cmd.Process.Pid, "dir", cmd.Dir)
 
 	outFile, fileErr := logging.NewAgentOutputFile(m.logDir, a.ID)
 	if fileErr != nil {
@@ -49,6 +56,7 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 	}
 
 	scanner := bufio.NewScanner(stdout)
+	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Bytes()
 
@@ -57,8 +65,8 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 			_, _ = outFile.WriteString("\n")
 		}
 
-		var event StreamEvent
-		if err := json.Unmarshal(line, &event); err != nil {
+		event := parseStreamEvent(line)
+		if event.Type == "" {
 			continue
 		}
 
@@ -72,11 +80,123 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 		}
 	}
 
-	_ = cmd.Wait()
+	waitErr := cmd.Wait()
+
+	if stderrOut := stderrBuf.String(); stderrOut != "" {
+		m.logger.Error("agent.headless.stderr", "id", a.ID, "stderr", stderrOut)
+	}
+	if waitErr != nil {
+		m.logger.Error("agent.headless.exit", "id", a.ID, "err", waitErr)
+	}
 
 	a.State = StateStopped
 	m.logger.Info("agent.headless.done", "id", a.ID, "cost", a.CostUSD)
 	m.emit("agent:state:"+a.ID, a)
+}
+
+func parseStreamEvent(line []byte) StreamEvent {
+	var raw map[string]any
+	if err := json.Unmarshal(line, &raw); err != nil {
+		return StreamEvent{}
+	}
+
+	eventType, _ := raw["type"].(string)
+	event := StreamEvent{
+		Type:    eventType,
+		Subtype: strVal(raw, "subtype"),
+	}
+
+	switch eventType {
+	case "system":
+		event.SessionID, _ = raw["session_id"].(string)
+
+	case "assistant":
+		event.Content = extractMessageContent(raw)
+
+	case "user":
+		event.Content = extractToolResult(raw)
+
+	case "result":
+		event.Content, _ = raw["result"].(string)
+		event.SessionID, _ = raw["session_id"].(string)
+		if cost, ok := raw["total_cost_usd"].(float64); ok {
+			event.CostUSD = cost
+		}
+
+	default:
+		// rate_limit_event, etc — keep type, no content
+	}
+
+	return event
+}
+
+func extractMessageContent(raw map[string]any) string {
+	msg, ok := raw["message"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	content, ok := msg["content"].([]any)
+	if !ok {
+		return ""
+	}
+	var parts []string
+	for _, c := range content {
+		block, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		switch block["type"] {
+		case "text":
+			if text, ok := block["text"].(string); ok {
+				parts = append(parts, text)
+			}
+		case "tool_use":
+			name, _ := block["name"].(string)
+			input, _ := block["input"].(map[string]any)
+			desc, _ := input["description"].(string)
+			cmd, _ := input["command"].(string)
+			switch {
+			case desc != "":
+				parts = append(parts, fmt.Sprintf("[%s] %s", name, desc))
+			case cmd != "":
+				parts = append(parts, fmt.Sprintf("[%s] %s", name, cmd))
+			default:
+				parts = append(parts, fmt.Sprintf("[%s]", name))
+			}
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
+func extractToolResult(raw map[string]any) string {
+	msg, ok := raw["message"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	content, ok := msg["content"].([]any)
+	if !ok {
+		return ""
+	}
+	var parts []string
+	for _, c := range content {
+		block, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		if text, ok := block["content"].(string); ok && text != "" {
+			// Truncate long tool results
+			if len(text) > 500 {
+				text = text[:500] + "..."
+			}
+			parts = append(parts, text)
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
+func strVal(m map[string]any, key string) string {
+	v, _ := m[key].(string)
+	return v
 }
 
 func (m *Manager) handleError(a *Agent, err error) {

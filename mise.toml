@@ -3,12 +3,16 @@ go = "1.26.1"
 node = "24"
 
 [tasks.dev]
-run = "wails dev"
-description = "Run wails dev server"
+run = ["go install ./cmd/synapse-cli", "wails dev"]
+description = "Install CLI and run wails dev server"
 
 [tasks.build]
 run = "wails build"
 description = "Build production binary"
+
+[tasks."build:cli"]
+run = "go build -o build/bin/synapse-cli ./cmd/synapse-cli"
+description = "Build CLI binary"
 
 [tasks.lint]
 run = ["golangci-lint run ./...", "cd frontend && npx oxlint ."]

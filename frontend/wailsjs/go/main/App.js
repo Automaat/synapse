@@ -6,12 +6,20 @@ export function AttachAgent(arg1) {
   return window['go']['main']['App']['AttachAgent'](arg1);
 }
 
+export function AttachOrchestrator() {
+  return window['go']['main']['App']['AttachOrchestrator']();
+}
+
 export function AttachTmuxSession(arg1) {
   return window['go']['main']['App']['AttachTmuxSession'](arg1);
 }
 
 export function CaptureAgentPane(arg1) {
   return window['go']['main']['App']['CaptureAgentPane'](arg1);
+}
+
+export function CaptureOrchestratorPane() {
+  return window['go']['main']['App']['CaptureOrchestratorPane']();
 }
 
 export function CreateTask(arg1, arg2, arg3) {
@@ -34,6 +42,10 @@ export function GetTask(arg1) {
   return window['go']['main']['App']['GetTask'](arg1);
 }
 
+export function IsOrchestratorRunning() {
+  return window['go']['main']['App']['IsOrchestratorRunning']();
+}
+
 export function KillTmuxSession(arg1) {
   return window['go']['main']['App']['KillTmuxSession'](arg1);
 }
@@ -54,8 +66,16 @@ export function StartAgent(arg1, arg2, arg3) {
   return window['go']['main']['App']['StartAgent'](arg1, arg2, arg3);
 }
 
+export function StartOrchestrator() {
+  return window['go']['main']['App']['StartOrchestrator']();
+}
+
 export function StopAgent(arg1) {
   return window['go']['main']['App']['StopAgent'](arg1);
+}
+
+export function StopOrchestrator() {
+  return window['go']['main']['App']['StopOrchestrator']();
 }
 
 export function TriageTask(arg1) {

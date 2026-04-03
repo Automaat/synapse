@@ -9,8 +9,10 @@ import (
 )
 
 type Config struct {
-	Logging  LoggingConfig `yaml:"logging"`
-	TasksDir string        `yaml:"tasks_dir"`
+	Logging   LoggingConfig `yaml:"logging"`
+	TasksDir  string        `yaml:"tasks_dir"`
+	SkillsDir string        `yaml:"skills_dir"`
+	RepoDir   string        `yaml:"repo_dir"`
 }
 
 type LoggingConfig struct {
@@ -72,6 +74,10 @@ func Load() (*Config, error) {
 		cfg.TasksDir = v
 	}
 
+	if cfg.SkillsDir == "" {
+		cfg.SkillsDir = defaultSkillsDir()
+	}
+
 	return cfg, nil
 }
 
@@ -105,4 +111,8 @@ func defaultLogDir() string {
 
 func defaultTasksDir() string {
 	return filepath.Join(HomeDir(), "tasks")
+}
+
+func defaultSkillsDir() string {
+	return filepath.Join(HomeDir(), "skills")
 }
