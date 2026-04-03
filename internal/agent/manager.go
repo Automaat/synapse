@@ -71,11 +71,15 @@ func (m *Manager) StartAgentInDir(taskID, taskTitle, mode, prompt string, allowe
 		go m.runHeadless(ctx, a, prompt, allowedTools)
 	case "interactive":
 		a.TmuxSession = fmt.Sprintf("synapse-%s-%s", sanitizeSessionName(taskTitle), id)
+		claudeCmd := "claude --dangerously-skip-permissions"
+		if len(allowedTools) > 0 {
+			claudeCmd = "claude --allowedTools " + strings.Join(allowedTools, ",")
+		}
 		var createErr error
 		if dir != "" {
-			createErr = m.tmux.CreateSessionInDir(a.TmuxSession, "claude", dir)
+			createErr = m.tmux.CreateSessionInDir(a.TmuxSession, claudeCmd, dir)
 		} else {
-			createErr = m.tmux.CreateSession(a.TmuxSession, "claude")
+			createErr = m.tmux.CreateSession(a.TmuxSession, claudeCmd)
 		}
 		if createErr != nil {
 			cancel()

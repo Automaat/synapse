@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -21,8 +22,23 @@ func (m *Manager) CreateSessionInDir(name, cmd, dir string) error {
 }
 
 func (m *Manager) SendKeys(name, keys string) error {
-	if err := run("send-keys", "-t", name, "-l", keys); err != nil {
-		return err
+	f, err := os.CreateTemp("", "synapse-prompt-*.txt")
+	if err != nil {
+		return fmt.Errorf("create temp file: %w", err)
+	}
+	defer func() { _ = os.Remove(f.Name()) }()
+
+	if _, err := f.WriteString(keys); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("write prompt: %w", err)
+	}
+	_ = f.Close()
+
+	if err := run("load-buffer", f.Name()); err != nil {
+		return fmt.Errorf("load-buffer: %w", err)
+	}
+	if err := run("paste-buffer", "-t", name); err != nil {
+		return fmt.Errorf("paste-buffer: %w", err)
 	}
 	return run("send-keys", "-t", name, "Enter")
 }
