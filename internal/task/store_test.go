@@ -288,6 +288,36 @@ func TestStoreUpdateAgentMode(t *testing.T) {
 	}
 }
 
+func TestStoreUpdateProjectID(t *testing.T) {
+	store, err := NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	created, err := store.Create("Project task", "", "headless")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updated, err := store.Update(created.ID, map[string]any{
+		"project_id": "owner/repo",
+	})
+	if err != nil {
+		t.Fatalf("update project_id: %v", err)
+	}
+	if updated.ProjectID != "owner/repo" {
+		t.Errorf("ProjectID = %q, want %q", updated.ProjectID, "owner/repo")
+	}
+
+	reloaded, err := store.Get(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.ProjectID != "owner/repo" {
+		t.Errorf("persisted ProjectID = %q, want %q", reloaded.ProjectID, "owner/repo")
+	}
+}
+
 func TestStoreUpdateStatusHumanRequired(t *testing.T) {
 	store, err := NewStore(t.TempDir())
 	if err != nil {
