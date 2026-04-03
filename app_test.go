@@ -18,7 +18,13 @@ func discardLogger() *slog.Logger {
 
 func setupApp(t *testing.T) *App {
 	t.Helper()
-	dir := t.TempDir()
+	// Use os.MkdirTemp instead of t.TempDir() to avoid cleanup races
+	// with background goroutines (TriageTask spawned by CreateTask).
+	dir, err := os.MkdirTemp("", "synapse-test-tasks-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 
 	store, err := task.NewStore(dir)
 	if err != nil {
@@ -28,7 +34,8 @@ func setupApp(t *testing.T) *App {
 	logger := discardLogger()
 	emit := func(string, any) {}
 	tm := tmux.NewManager()
-	mgr := agent.NewManager(t.Context(), tm, emit, logger, t.TempDir())
+	logDir := filepath.Join(os.TempDir(), "synapse-test-logs")
+	mgr := agent.NewManager(t.Context(), tm, emit, logger, logDir)
 
 	return &App{
 		tasks:    store,
