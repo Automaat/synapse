@@ -570,6 +570,7 @@ func (a *App) orchestratorLoop(ctx context.Context) {
 		case <-ticker.C:
 			a.maybeStartOrchestrator()
 			a.maybeDispatchTasks()
+			a.maybeResumePlanning()
 		}
 	}
 }
@@ -658,6 +659,27 @@ func (a *App) maybeDispatchTasks() {
 		if _, err := a.UpdateTask(t.ID, map[string]any{"status": string(task.StatusInProgress)}); err != nil {
 			a.logger.Error("auto-dispatch.failed", "task_id", t.ID, "err", err)
 		}
+	}
+}
+
+func (a *App) maybeResumePlanning() {
+	tasks, err := a.tasks.List()
+	if err != nil {
+		return
+	}
+	for i := range tasks {
+		if tasks[i].Status != task.StatusPlanning {
+			continue
+		}
+		if a.agents.HasRunningAgentForTask(tasks[i].ID) {
+			continue
+		}
+		a.logger.Info("plan.resume", "task_id", tasks[i].ID, "title", tasks[i].Title)
+		go func(id string) {
+			if err := a.PlanTask(id); err != nil {
+				a.logger.Error("plan.resume.failed", "task_id", id, "err", err)
+			}
+		}(tasks[i].ID)
 	}
 }
 
