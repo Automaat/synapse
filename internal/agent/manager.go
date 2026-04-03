@@ -134,7 +134,9 @@ func (m *Manager) StopAgent(agentID string) error {
 		return fmt.Errorf("agent %s not found", agentID)
 	}
 
-	a.cancel()
+	if a.cancel != nil {
+		a.cancel()
+	}
 	a.State = StateStopped
 
 	if a.Mode == "interactive" && a.TmuxSession != "" {
