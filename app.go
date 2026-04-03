@@ -246,6 +246,8 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 		}
 	}
 
+	t = a.autoAssignProject(t)
+
 	dir := ""
 	if t.ProjectID != "" {
 		d, wtErr := a.prepareWorktree(t)
@@ -270,6 +272,23 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 		a.logger.Error("task.add-run", "task_id", taskID, "err", err)
 	}
 	return ag, nil
+}
+
+func (a *App) autoAssignProject(t task.Task) task.Task {
+	if t.ProjectID != "" || a.projects == nil {
+		return t
+	}
+	projects, err := a.projects.List()
+	if err != nil || len(projects) != 1 {
+		return t
+	}
+	t.ProjectID = projects[0].ID
+	if _, err := a.tasks.Update(t.ID, map[string]any{"project_id": t.ProjectID}); err != nil {
+		a.logger.Error("auto-assign-project", "task_id", t.ID, "err", err)
+	} else {
+		a.logger.Info("auto-assign-project", "task_id", t.ID, "project", t.ProjectID)
+	}
+	return t
 }
 
 func (a *App) prepareWorktree(t task.Task) (string, error) {
@@ -887,6 +906,8 @@ func (a *App) PlanTask(id string) error {
 		return err
 	}
 
+	t = a.autoAssignProject(t)
+
 	dir := ""
 	if t.ProjectID != "" {
 		d, wtErr := a.prepareWorktree(t)
@@ -903,11 +924,12 @@ func (a *App) PlanTask(id string) error {
 
 	a.logger.Info("plan.start", "task_id", t.ID, "title", t.Title)
 
+	planTools := []string{"Bash", "Read", "Glob", "Grep"}
 	var ag *agent.Agent
 	if dir != "" {
-		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, nil, dir)
+		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, planTools, dir)
 	} else {
-		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, nil, config.HomeDir())
+		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, planTools, config.HomeDir())
 	}
 	if err != nil {
 		return err
