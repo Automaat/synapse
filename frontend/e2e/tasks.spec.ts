@@ -174,8 +174,7 @@ test.describe('Create Task', () => {
     await page.getByPlaceholder('Task title...').fill('E2E Test Task')
     await page.getByPlaceholder('Task description (markdown)...').fill('Created by Playwright e2e test')
 
-    // Switch to interactive mode
-    await clickSegment(page, 'dialog', 'Interactive')
+    // Interactive is the default mode (headless is opt-in checkbox)
 
     // Submit
     await page.getByRole('button', { name: 'Create' }).click()
