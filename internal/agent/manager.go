@@ -191,13 +191,18 @@ func (m *Manager) ListAgents() []*Agent {
 }
 
 // HasRunningAgentForTask returns true if any agent is currently running for the given task.
+// For headless agents, verifies the process is still alive.
 func (m *Manager) HasRunningAgentForTask(taskID string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, a := range m.agents {
-		if a.TaskID == taskID && a.State == StateRunning {
-			return true
+		if a.TaskID != taskID || a.State != StateRunning {
+			continue
 		}
+		if a.Mode == "headless" && a.cmd != nil && a.cmd.ProcessState != nil {
+			continue // process exited, state is stale
+		}
+		return true
 	}
 	return false
 }
