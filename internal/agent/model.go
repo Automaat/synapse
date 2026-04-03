@@ -30,6 +30,7 @@ type Agent struct {
 	Name        string    `json:"name,omitempty"`
 	Project     string    `json:"project,omitempty"`
 
+	ExitErr      error `json:"-"`
 	outputBuffer []StreamEvent
 	cmd          *exec.Cmd
 	cancel       context.CancelFunc

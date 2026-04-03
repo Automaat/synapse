@@ -29,17 +29,15 @@ Review the agent result provided in the prompt. Consider:
 
 | Condition | New Status | Rationale |
 |-----------|-----------|-----------|
-| Agent completed work successfully, task is simple/mechanical | done | No review needed |
-| Agent completed work but output needs human verification | in-review | Complex changes need eyes |
+| Agent completed work successfully | in-review | Human must review before done |
 | Agent failed, hit errors, or produced no useful output | todo | Reset for retry |
 | Agent explicitly said it's blocked or needs input | human-required | Needs human intervention |
 
 ### Guidelines
 
-- Default to `in-review` when uncertain — safer to have a human check
-- Only set `done` for clearly successful, low-risk completions (docs, simple refactors, reviews)
+- **Never set `done`** — only humans move tasks to `done` after review
+- Default to `in-review` when uncertain
 - Set `todo` if the agent output shows errors, loops, or incomplete work
-- If the task has tags like `large` or `feature`, prefer `in-review` over `done`
 
 ### 4. Update the task status
 
