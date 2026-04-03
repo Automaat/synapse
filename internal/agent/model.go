@@ -29,6 +29,7 @@ type Agent struct {
 	Command     string    `json:"command,omitempty"`
 	Name        string    `json:"name,omitempty"`
 	Project     string    `json:"project,omitempty"`
+	Model       string    `json:"model,omitempty"`
 
 	ExitErr      error `json:"-"`
 	outputBuffer []StreamEvent
@@ -39,6 +40,17 @@ type Agent struct {
 
 func (a *Agent) Output() []StreamEvent {
 	return a.outputBuffer
+}
+
+// RunConfig is the single entry point for starting any agent.
+type RunConfig struct {
+	TaskID       string
+	Name         string
+	Mode         string // "headless" or "interactive"
+	Prompt       string
+	AllowedTools []string
+	Dir          string
+	Model        string // "opus", "sonnet", or full model ID
 }
 
 type StreamEvent struct {

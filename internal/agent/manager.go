@@ -42,40 +42,46 @@ func (m *Manager) SetOnComplete(fn func(ag *Agent)) {
 }
 
 func (m *Manager) StartAgent(taskID, taskTitle, mode, prompt string, allowedTools []string) (*Agent, error) {
-	return m.StartAgentInDir(taskID, taskTitle, mode, prompt, allowedTools, "")
+	return m.Run(RunConfig{TaskID: taskID, Name: taskTitle, Mode: mode, Prompt: prompt, AllowedTools: allowedTools})
 }
 
 func (m *Manager) StartAgentInDir(taskID, taskTitle, mode, prompt string, allowedTools []string, dir string) (*Agent, error) {
+	return m.Run(RunConfig{TaskID: taskID, Name: taskTitle, Mode: mode, Prompt: prompt, AllowedTools: allowedTools, Dir: dir})
+}
+
+func (m *Manager) Run(cfg RunConfig) (*Agent, error) {
 	id := uuid.NewString()[:8]
 	ctx, cancel := context.WithCancel(m.ctx)
 
 	a := &Agent{
 		ID:         id,
-		TaskID:     taskID,
-		Name:       taskTitle,
-		Mode:       mode,
+		TaskID:     cfg.TaskID,
+		Name:       cfg.Name,
+		Mode:       cfg.Mode,
+		Model:      cfg.Model,
 		State:      StateRunning,
 		StartedAt:  time.Now().UTC(),
 		cancel:     cancel,
-		sessionCWD: dir,
+		sessionCWD: cfg.Dir,
 	}
 
 	m.mu.Lock()
 	m.agents[id] = a
 	m.mu.Unlock()
 
-	m.logger.Info("agent.start", "id", id, "taskID", taskID, "mode", mode)
+	m.logger.Info("agent.start", "id", id, "taskID", cfg.TaskID, "mode", cfg.Mode, "model", cfg.Model)
 
-	switch mode {
+	switch cfg.Mode {
 	case "headless":
-		go m.runHeadless(ctx, a, prompt, allowedTools)
+		go m.runHeadless(ctx, a, cfg.Prompt, cfg.AllowedTools)
 	case "interactive":
-		a.TmuxSession = fmt.Sprintf("synapse-%s-%s", sanitizeSessionName(taskTitle), id)
+		a.TmuxSession = fmt.Sprintf("synapse-%s-%s", sanitizeSessionName(cfg.Name), id)
+		claudeCmd := m.buildClaudeCmd(cfg)
 		var createErr error
-		if dir != "" {
-			createErr = m.tmux.CreateSessionInDir(a.TmuxSession, "claude", dir)
+		if cfg.Dir != "" {
+			createErr = m.tmux.CreateSessionInDir(a.TmuxSession, claudeCmd, cfg.Dir)
 		} else {
-			createErr = m.tmux.CreateSession(a.TmuxSession, "claude")
+			createErr = m.tmux.CreateSession(a.TmuxSession, claudeCmd)
 		}
 		if createErr != nil {
 			cancel()
@@ -85,16 +91,29 @@ func (m *Manager) StartAgentInDir(taskID, taskTitle, mode, prompt string, allowe
 			m.logger.Error("agent.tmux.create", "id", id, "err", createErr)
 			return nil, fmt.Errorf("create tmux session: %w", createErr)
 		}
-		if prompt != "" {
-			go m.sendInteractivePrompt(ctx, a, prompt)
+		if cfg.Prompt != "" {
+			go m.sendInteractivePrompt(ctx, a, cfg.Prompt)
 		}
 	default:
 		cancel()
-		return nil, fmt.Errorf("unknown mode: %s", mode)
+		return nil, fmt.Errorf("unknown mode: %s", cfg.Mode)
 	}
 
 	m.emit("agent:state:"+id, a)
 	return a, nil
+}
+
+func (m *Manager) buildClaudeCmd(cfg RunConfig) string {
+	parts := []string{"claude"}
+	if len(cfg.AllowedTools) > 0 {
+		parts = append(parts, "--allowedTools", strings.Join(cfg.AllowedTools, ","))
+	} else {
+		parts = append(parts, "--dangerously-skip-permissions")
+	}
+	if cfg.Model != "" {
+		parts = append(parts, "--model", cfg.Model)
+	}
+	return strings.Join(parts, " ")
 }
 
 func (m *Manager) sendInteractivePrompt(ctx context.Context, a *Agent, prompt string) {
@@ -134,7 +153,9 @@ func (m *Manager) StopAgent(agentID string) error {
 		return fmt.Errorf("agent %s not found", agentID)
 	}
 
-	a.cancel()
+	if a.cancel != nil {
+		a.cancel()
+	}
 	a.State = StateStopped
 
 	if a.Mode == "interactive" && a.TmuxSession != "" {
@@ -170,13 +191,18 @@ func (m *Manager) ListAgents() []*Agent {
 }
 
 // HasRunningAgentForTask returns true if any agent is currently running for the given task.
+// For headless agents, verifies the process is still alive.
 func (m *Manager) HasRunningAgentForTask(taskID string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, a := range m.agents {
-		if a.TaskID == taskID && a.State == StateRunning {
-			return true
+		if a.TaskID != taskID || a.State != StateRunning {
+			continue
 		}
+		if a.Mode == "headless" && a.cmd != nil && a.cmd.ProcessState != nil {
+			continue // process exited, state is stale
+		}
+		return true
 	}
 	return false
 }

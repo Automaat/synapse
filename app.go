@@ -246,6 +246,8 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 		}
 	}
 
+	t = a.autoAssignProject(t)
+
 	dir := ""
 	if t.ProjectID != "" {
 		d, wtErr := a.prepareWorktree(t)
@@ -256,7 +258,15 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 	}
 
 	fullPrompt := fmt.Sprintf("# Task: %s\n\n%s\n\n---\n\n%s", t.Title, t.Body, prompt)
-	ag, err := a.agents.StartAgentInDir(taskID, t.Title, mode, fullPrompt, t.AllowedTools, dir)
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID:       taskID,
+		Name:         t.Title,
+		Mode:         mode,
+		Prompt:       fullPrompt,
+		AllowedTools: t.AllowedTools,
+		Dir:          dir,
+		Model:        "sonnet",
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +280,23 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 		a.logger.Error("task.add-run", "task_id", taskID, "err", err)
 	}
 	return ag, nil
+}
+
+func (a *App) autoAssignProject(t task.Task) task.Task {
+	if t.ProjectID != "" || a.projects == nil {
+		return t
+	}
+	projects, err := a.projects.List()
+	if err != nil || len(projects) != 1 {
+		return t
+	}
+	t.ProjectID = projects[0].ID
+	if _, err := a.tasks.Update(t.ID, map[string]any{"project_id": t.ProjectID}); err != nil {
+		a.logger.Error("auto-assign-project", "task_id", t.ID, "err", err)
+	} else {
+		a.logger.Info("auto-assign-project", "task_id", t.ID, "project", t.ProjectID)
+	}
+	return t
 }
 
 func (a *App) prepareWorktree(t task.Task) (string, error) {
@@ -297,7 +324,7 @@ func (a *App) prepareWorktree(t task.Task) (string, error) {
 		}
 		return wtPath, nil
 	}
-	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, branch); err != nil {
+	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, "origin/"+branch); err != nil {
 		// Branch may exist from a previous run — try checkout instead of new branch
 		if errRe := project.CreateWorktreeExisting(proj.ClonePath, wtPath, wtBranch); errRe != nil {
 			return "", fmt.Errorf("create worktree: %w (retry: %w)", err, errRe)
@@ -541,7 +568,7 @@ func (a *App) syncFile(src, dst string) {
 }
 
 func (a *App) orchestratorLoop(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
@@ -551,6 +578,7 @@ func (a *App) orchestratorLoop(ctx context.Context) {
 		case <-ticker.C:
 			a.maybeStartOrchestrator()
 			a.maybeDispatchTasks()
+			a.maybeResumePlanning()
 		}
 	}
 }
@@ -642,6 +670,27 @@ func (a *App) maybeDispatchTasks() {
 	}
 }
 
+func (a *App) maybeResumePlanning() {
+	tasks, err := a.tasks.List()
+	if err != nil {
+		return
+	}
+	for i := range tasks {
+		if tasks[i].Status != task.StatusPlanning {
+			continue
+		}
+		if a.agents.HasRunningAgentForTask(tasks[i].ID) {
+			continue
+		}
+		a.logger.Info("plan.resume", "task_id", tasks[i].ID, "title", tasks[i].Title)
+		go func(id string) {
+			if err := a.PlanTask(id); err != nil {
+				a.logger.Error("plan.resume.failed", "task_id", id, "err", err)
+			}
+		}(tasks[i].ID)
+	}
+}
+
 func taskPriority(tags []string) int {
 	for _, t := range tags {
 		switch t {
@@ -724,8 +773,15 @@ func (a *App) TriageTask(id string) error {
 
 	a.logger.Info("triage.start", "task_id", t.ID, "title", t.Title, "dir", dir)
 
-	triageTools := []string{"Bash", "Read", "Skill"}
-	ag, err := a.agents.StartAgentInDir(t.ID, "triage:"+t.Title, "headless", prompt, triageTools, dir)
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID:       t.ID,
+		Name:         "triage:" + t.Title,
+		Mode:         "headless",
+		Prompt:       prompt,
+		AllowedTools: []string{"Bash", "Read", "Skill"},
+		Dir:          dir,
+		Model:        "sonnet",
+	})
 	if err != nil {
 		return err
 	}
@@ -867,8 +923,15 @@ func (a *App) EvaluateTask(taskID, agentResult string) error {
 
 	a.logger.Info("eval.start", "task_id", t.ID, "title", t.Title, "dir", dir)
 
-	evalTools := []string{"Bash"}
-	ag, err := a.agents.StartAgentInDir(t.ID, "eval:"+t.Title, "headless", prompt, evalTools, dir)
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID:       t.ID,
+		Name:         "eval:" + t.Title,
+		Mode:         "headless",
+		Prompt:       prompt,
+		AllowedTools: []string{"Bash"},
+		Dir:          dir,
+		Model:        "sonnet",
+	})
 	if err != nil {
 		return err
 	}
@@ -887,6 +950,8 @@ func (a *App) PlanTask(id string) error {
 		return err
 	}
 
+	t = a.autoAssignProject(t)
+
 	dir := ""
 	if t.ProjectID != "" {
 		d, wtErr := a.prepareWorktree(t)
@@ -903,12 +968,19 @@ func (a *App) PlanTask(id string) error {
 
 	a.logger.Info("plan.start", "task_id", t.ID, "title", t.Title)
 
-	var ag *agent.Agent
-	if dir != "" {
-		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, nil, dir)
-	} else {
-		ag, err = a.agents.StartAgentInDir(t.ID, "plan:"+t.Title, "headless", prompt, nil, config.HomeDir())
+	planDir := dir
+	if planDir == "" {
+		planDir = config.HomeDir()
 	}
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID:       t.ID,
+		Name:         "plan:" + t.Title,
+		Mode:         "headless",
+		Prompt:       prompt,
+		AllowedTools: []string{"Bash", "Read", "Glob", "Grep"},
+		Dir:          planDir,
+		Model:        "opus",
+	})
 	if err != nil {
 		return err
 	}
@@ -931,8 +1003,8 @@ func (a *App) ApprovePlan(id string) (task.Task, error) {
 	}
 	a.logger.Info("plan.approve", "task_id", id, "title", t.Title)
 	a.logAudit(audit.EventPlanApproved, id, "", map[string]any{"title": t.Title})
-	return a.tasks.Update(id, map[string]any{
-		"status": string(task.StatusTodo),
+	return a.UpdateTask(id, map[string]any{
+		"status": string(task.StatusInProgress),
 	})
 }
 
@@ -950,10 +1022,19 @@ func (a *App) RejectPlan(id, feedback string) (task.Task, error) {
 	if feedback != "" {
 		body += "\n\n## Plan Feedback\n\n" + feedback
 	}
-	return a.tasks.Update(id, map[string]any{
+	updated, err := a.tasks.Update(id, map[string]any{
 		"status": string(task.StatusPlanning),
 		"body":   body,
 	})
+	if err != nil {
+		return updated, err
+	}
+	go func() {
+		if planErr := a.PlanTask(id); planErr != nil {
+			a.logger.Error("plan.reject.replan", "task_id", id, "err", planErr)
+		}
+	}()
+	return updated, nil
 }
 
 func (a *App) GetAgentOutput(agentID string) ([]agent.StreamEvent, error) {
@@ -1102,12 +1183,16 @@ func (a *App) handlePRIssue(issue github.PRIssue) {
 	switch issue.Kind {
 	case github.PRIssueConflict:
 		prompt = fmt.Sprintf(
-			"PR #%d on %s has merge conflicts on branch `%s`.\n\n"+
-				"1. Fetch latest from base branch\n"+
-				"2. Rebase or merge to resolve conflicts\n"+
-				"3. Push the resolved branch\n\n"+
-				"Use `git` commands. Do NOT force-push.",
-			issue.PR.Number, issue.PR.Repository, issue.PR.HeadRefName,
+			"Fix merge conflicts on branch `%s` (PR #%d). "+
+				"Do NOT investigate — go straight to fixing.\n\n"+
+				"```bash\n"+
+				"git fetch origin main\n"+
+				"git rebase origin/main\n"+
+				"# resolve each conflict, git add, git rebase --continue\n"+
+				"git push --force-with-lease\n"+
+				"```\n\n"+
+				"Resolve conflicts to keep BOTH sides' changes. Push when done.",
+			issue.PR.HeadRefName, issue.PR.Number,
 		)
 		a.logAudit(audit.EventPRConflictDetected, t.ID, "", map[string]any{
 			"pr": issue.PR.Number, "repo": issue.PR.Repository,
@@ -1115,13 +1200,14 @@ func (a *App) handlePRIssue(issue github.PRIssue) {
 
 	case github.PRIssueCIFailure:
 		prompt = fmt.Sprintf(
-			"PR #%d on %s has failing CI on branch `%s`.\n\n"+
-				"1. Run `gh run list --branch %s --limit 5` to find failed run\n"+
-				"2. Run `gh run view <run-id> --log-failed` for details\n"+
-				"3. Fix the failing tests or code\n"+
-				"4. Commit and push the fix\n\n"+
-				"Only fix the CI failure, no unrelated changes.",
-			issue.PR.Number, issue.PR.Repository, issue.PR.HeadRefName,
+			"Fix failing CI on branch `%s` (PR #%d). "+
+				"Do NOT investigate git state — go straight to the failure.\n\n"+
+				"```bash\n"+
+				"gh run list --branch %s --limit 3\n"+
+				"gh run view <FAILED_RUN_ID> --log-failed\n"+
+				"```\n\n"+
+				"Read the failure, fix the code, commit and push. No unrelated changes.",
+			issue.PR.HeadRefName, issue.PR.Number,
 			issue.PR.HeadRefName,
 		)
 		a.logAudit(audit.EventPRCIFailureDetected, t.ID, "", map[string]any{
@@ -1140,7 +1226,14 @@ func (a *App) handlePRIssue(issue github.PRIssue) {
 	}
 
 	fullPrompt := fmt.Sprintf("# Task: %s\n\n%s", t.Title, prompt)
-	ag, err := a.agents.StartAgentInDir(t.ID, "pr-fix:"+t.Title, "headless", fullPrompt, nil, dir)
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID: t.ID,
+		Name:   "pr-fix:" + t.Title,
+		Mode:   "headless",
+		Prompt: fullPrompt,
+		Dir:    dir,
+		Model:  "sonnet",
+	})
 	if err != nil {
 		a.logger.Error("pr-monitor.agent-start", "task_id", t.ID, "err", err)
 		return

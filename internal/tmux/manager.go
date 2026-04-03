@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -21,7 +22,25 @@ func (m *Manager) CreateSessionInDir(name, cmd, dir string) error {
 }
 
 func (m *Manager) SendKeys(name, keys string) error {
-	return run("send-keys", "-t", name, keys, "Enter")
+	f, err := os.CreateTemp("", "synapse-prompt-*.txt")
+	if err != nil {
+		return fmt.Errorf("create temp file: %w", err)
+	}
+	defer func() { _ = os.Remove(f.Name()) }()
+
+	if _, err := f.WriteString(keys); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("write prompt: %w", err)
+	}
+	_ = f.Close()
+
+	if err := run("load-buffer", f.Name()); err != nil {
+		return fmt.Errorf("load-buffer: %w", err)
+	}
+	if err := run("paste-buffer", "-t", name); err != nil {
+		return fmt.Errorf("paste-buffer: %w", err)
+	}
+	return run("send-keys", "-t", name, "Enter")
 }
 
 func (m *Manager) CapturePaneOutput(name string) (string, error) {
@@ -44,7 +63,7 @@ type SessionInfo struct {
 func (m *Manager) ListSessions() ([]SessionInfo, error) {
 	out, err := output("list-sessions", "-F", "#{session_name}\t#{session_created}")
 	if err != nil {
-		if strings.Contains(err.Error(), "no server running") || strings.Contains(err.Error(), "no sessions") {
+		if strings.Contains(err.Error(), "no server running") || strings.Contains(err.Error(), "no sessions") || strings.Contains(err.Error(), "No such file or directory") {
 			return nil, nil
 		}
 		return nil, err

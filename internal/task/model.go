@@ -1,6 +1,9 @@
 package task
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Status string
 
@@ -14,6 +17,20 @@ const (
 	StatusHumanRequired Status = "human-required"
 	StatusDone          Status = "done"
 )
+
+var validStatuses = map[Status]bool{
+	StatusNew: true, StatusTodo: true, StatusInProgress: true,
+	StatusInReview: true, StatusPlanning: true, StatusPlanReview: true,
+	StatusHumanRequired: true, StatusDone: true,
+}
+
+func ValidateStatus(s string) (Status, error) {
+	st := Status(s)
+	if !validStatuses[st] {
+		return "", fmt.Errorf("invalid status %q", s)
+	}
+	return st, nil
+}
 
 type AgentRun struct {
 	AgentID   string    `yaml:"agent_id" json:"agentId"`

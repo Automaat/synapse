@@ -105,7 +105,11 @@ func (s *Store) Update(id string, updates map[string]any) (Task, error) {
 		t.Title = v
 	}
 	if v, ok := updates["status"].(string); ok {
-		t.Status = Status(v)
+		st, vErr := ValidateStatus(v)
+		if vErr != nil {
+			return Task{}, vErr
+		}
+		t.Status = st
 	}
 	if v, ok := updates["agent_mode"].(string); ok {
 		t.AgentMode = v
