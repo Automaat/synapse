@@ -972,10 +972,19 @@ func (a *App) RejectPlan(id, feedback string) (task.Task, error) {
 	if feedback != "" {
 		body += "\n\n## Plan Feedback\n\n" + feedback
 	}
-	return a.tasks.Update(id, map[string]any{
+	updated, err := a.tasks.Update(id, map[string]any{
 		"status": string(task.StatusPlanning),
 		"body":   body,
 	})
+	if err != nil {
+		return updated, err
+	}
+	go func() {
+		if planErr := a.PlanTask(id); planErr != nil {
+			a.logger.Error("plan.reject.replan", "task_id", id, "err", planErr)
+		}
+	}()
+	return updated, nil
 }
 
 func (a *App) GetAgentOutput(agentID string) ([]agent.StreamEvent, error) {
