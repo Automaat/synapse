@@ -30,9 +30,10 @@ func main() {
 	app := NewApp(logger, cfg.Logging.Dir, cfg.TasksDir, cfg.SkillsDir, cfg.RepoDir)
 
 	err = wails.Run(&options.App{
-		Title:  "Synapse",
-		Width:  1280,
-		Height: 800,
+		Title:            "Synapse",
+		Width:            1280,
+		Height:           800,
+		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
