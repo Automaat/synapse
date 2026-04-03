@@ -1,4 +1,5 @@
 <script lang="ts">
+  import snarkdown from 'snarkdown'
   import { taskStore } from '../stores/tasks.svelte.js'
   import { agentStore } from '../stores/agents.svelte.js'
   import AgentCard from '../components/AgentCard.svelte'
@@ -133,7 +134,9 @@
             {#if expandedTaskId === t.id}
               <div class="flex flex-col gap-2 border-t border-error-300 px-4 py-3 dark:border-error-700">
                 {#if t.body}
-                  <pre class="whitespace-pre-wrap text-xs text-surface-700 dark:text-surface-300">{t.body}</pre>
+                  <div class="prose prose-sm max-w-none text-surface-700 dark:text-surface-300 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_p]:text-xs [&_li]:text-xs [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-semibold [&_code]:rounded [&_code]:bg-surface-200 [&_code]:px-1 [&_code]:text-xs [&_code]:dark:bg-surface-700 [&_a]:text-primary-500 [&_a]:underline">
+                    {@html snarkdown(t.body)}
+                  </div>
                 {/if}
                 {#if submitError}
                   <p class="text-xs text-error-500">{submitError}</p>
