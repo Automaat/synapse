@@ -34,6 +34,10 @@ export function DiscoverAgents() {
   return window['go']['main']['App']['DiscoverAgents']();
 }
 
+export function EvaluateTask(arg1, arg2) {
+  return window['go']['main']['App']['EvaluateTask'](arg1, arg2);
+}
+
 export function FetchReviews() {
   return window['go']['main']['App']['FetchReviews']();
 }
@@ -64,6 +68,10 @@ export function ListTasks() {
 
 export function ListTmuxSessions() {
   return window['go']['main']['App']['ListTmuxSessions']();
+}
+
+export function RegisterSpotlightHotkey() {
+  return window['go']['main']['App']['RegisterSpotlightHotkey']();
 }
 
 export function StartAgent(arg1, arg2, arg3) {
