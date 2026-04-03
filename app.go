@@ -560,7 +560,7 @@ func (a *App) syncFile(src, dst string) {
 }
 
 func (a *App) orchestratorLoop(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
