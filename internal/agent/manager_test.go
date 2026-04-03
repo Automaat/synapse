@@ -287,7 +287,7 @@ func newInteractiveAgent(t *testing.T, m *Manager) *Agent {
 	session := "synapse-test-" + t.Name()
 	_ = tm.KillSession(session)
 
-	if err := tm.CreateSession(session, "sleep 120"); err != nil {
+	if err := tm.CreateSession(session, "sleep 5"); err != nil {
 		t.Fatalf("create tmux session: %v", err)
 	}
 	t.Cleanup(func() { _ = tm.KillSession(session) })
