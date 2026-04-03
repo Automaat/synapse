@@ -194,6 +194,48 @@ func TestCapturePaneNoTmuxSession(t *testing.T) {
 	}
 }
 
+func TestCapturePaneStoppedAgent(t *testing.T) {
+	m, _ := newTestManager(t)
+
+	a, err := m.StartAgent("task-1", "headless", "test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate an interactive agent that was stopped
+	a.TmuxSession = "synapse-fake"
+	a.State = StateStopped
+
+	out, err := m.CapturePane(a.ID)
+	if err != nil {
+		t.Fatalf("expected no error for stopped agent, got: %v", err)
+	}
+	if out != "" {
+		t.Errorf("expected empty output for stopped agent, got: %q", out)
+	}
+}
+
+func TestSendInteractivePromptCancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	emitted := &[]string{}
+	emit := func(event string, _ any) {
+		*emitted = append(*emitted, event)
+	}
+
+	m := NewManager(ctx, tmux.NewManager(), emit, discardLogger(), t.TempDir())
+
+	a := &Agent{
+		ID:          "test-cancel",
+		TmuxSession: "synapse-nonexistent",
+	}
+
+	// Cancel immediately so sendInteractivePrompt exits via ctx.Done()
+	cancel()
+	m.sendInteractivePrompt(ctx, a, "test prompt")
+	// Should return without error or hang
+}
+
 func TestShutdown(t *testing.T) {
 	m, _ := newTestManager(t)
 
