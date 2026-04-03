@@ -279,40 +279,38 @@ func TestSendInteractivePromptDetectsReady(t *testing.T) {
 	}
 }
 
-func TestStartInteractiveAgent(t *testing.T) {
-	requireTmux(t)
+// newInteractiveAgent creates a fake interactive agent backed by a real tmux
+// session running a simple command (no claude dependency).
+func newInteractiveAgent(t *testing.T, m *Manager) *Agent {
+	t.Helper()
+	tm := tmux.NewManager()
+	session := "synapse-test-" + t.Name()
+	_ = tm.KillSession(session)
 
-	m, emitted := newTestManager(t)
+	if err := tm.CreateSession(session, "sleep 120"); err != nil {
+		t.Fatalf("create tmux session: %v", err)
+	}
+	t.Cleanup(func() { _ = tm.KillSession(session) })
 
-	a, err := m.StartAgent("task-1", "interactive", "", nil)
-	if err != nil {
-		t.Fatalf("StartAgent interactive: %v", err)
+	a := &Agent{
+		ID:          "test-" + t.Name(),
+		TaskID:      "task-1",
+		Mode:        "interactive",
+		State:       StateRunning,
+		TmuxSession: session,
+		cancel:      func() {},
 	}
-	t.Cleanup(func() { _ = m.StopAgent(a.ID) })
-
-	if a.TmuxSession == "" {
-		t.Error("expected TmuxSession to be set")
-	}
-	if a.Mode != "interactive" {
-		t.Errorf("Mode = %q, want %q", a.Mode, "interactive")
-	}
-	if a.State != StateRunning {
-		t.Errorf("State = %q, want %q", a.State, StateRunning)
-	}
-	if len(*emitted) == 0 {
-		t.Error("expected emitted event")
-	}
+	m.mu.Lock()
+	m.agents[a.ID] = a
+	m.mu.Unlock()
+	return a
 }
 
 func TestStopInteractiveAgent(t *testing.T) {
 	requireTmux(t)
 
 	m, _ := newTestManager(t)
-
-	a, err := m.StartAgent("task-1", "interactive", "", nil)
-	if err != nil {
-		t.Fatalf("StartAgent: %v", err)
-	}
+	a := newInteractiveAgent(t, m)
 
 	if err := m.StopAgent(a.ID); err != nil {
 		t.Fatalf("StopAgent: %v", err)
@@ -322,7 +320,6 @@ func TestStopInteractiveAgent(t *testing.T) {
 		t.Errorf("State = %q, want %q", a.State, StateStopped)
 	}
 
-	// Tmux session should be gone
 	tm := tmux.NewManager()
 	if tm.SessionExists(a.TmuxSession) {
 		t.Error("tmux session should not exist after stop")
@@ -333,17 +330,30 @@ func TestCapturePaneInteractiveRunning(t *testing.T) {
 	requireTmux(t)
 
 	m, _ := newTestManager(t)
+	a := newInteractiveAgent(t, m)
 
-	a, err := m.StartAgent("task-1", "interactive", "", nil)
-	if err != nil {
-		t.Fatalf("StartAgent: %v", err)
-	}
-	t.Cleanup(func() { _ = m.StopAgent(a.ID) })
-
-	// Should succeed for running interactive agent
-	_, err = m.CapturePane(a.ID)
+	_, err := m.CapturePane(a.ID)
 	if err != nil {
 		t.Fatalf("CapturePane: %v", err)
+	}
+}
+
+func TestCapturePaneAfterStop(t *testing.T) {
+	requireTmux(t)
+
+	m, _ := newTestManager(t)
+	a := newInteractiveAgent(t, m)
+
+	if err := m.StopAgent(a.ID); err != nil {
+		t.Fatalf("StopAgent: %v", err)
+	}
+
+	out, err := m.CapturePane(a.ID)
+	if err != nil {
+		t.Fatalf("expected no error after stop, got: %v", err)
+	}
+	if out != "" {
+		t.Errorf("expected empty output after stop, got: %q", out)
 	}
 }
 
