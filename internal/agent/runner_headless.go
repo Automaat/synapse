@@ -87,6 +87,7 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 	}
 	if waitErr != nil {
 		m.logger.Error("agent.headless.exit", "id", a.ID, "err", waitErr)
+		a.ExitErr = waitErr
 	}
 
 	a.State = StateStopped
