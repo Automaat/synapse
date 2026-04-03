@@ -11,6 +11,7 @@
   import QuickAddTask from './components/QuickAddTask.svelte'
   import Dashboard from './pages/Dashboard.svelte'
   import TmuxSessions from './pages/TmuxSessions.svelte'
+  import Orchestrator from './pages/Orchestrator.svelte'
 
   type Page =
     | { kind: 'dashboard' }
@@ -18,6 +19,7 @@
     | { kind: 'task-detail'; taskId: string }
     | { kind: 'agent-list' }
     | { kind: 'agent-detail'; agentId: string }
+    | { kind: 'orchestrator' }
     | { kind: 'tmux' }
 
   let page = $state<Page>({ kind: 'dashboard' })
@@ -29,12 +31,14 @@
     page.kind === 'task-list' ? 'Tasks' :
     page.kind === 'task-detail' ? 'Task Detail' :
     page.kind === 'agent-list' ? 'Agents' :
+    page.kind === 'orchestrator' ? 'Orchestrator' :
     page.kind === 'tmux' ? 'Tmux Sessions' :
     'Agent Detail'
   )
 
   $effect(() => {
     taskStore.load()
+    taskStore.startPolling()
     agentStore.load()
     agentStore.startPolling()
 
@@ -75,6 +79,10 @@
       }
       if (e.metaKey && e.key === '4') {
         e.preventDefault()
+        page = { kind: 'orchestrator' }
+      }
+      if (e.metaKey && e.key === '5') {
+        e.preventDefault()
         page = { kind: 'tmux' }
       }
     }
@@ -84,6 +92,7 @@
       unsub1()
       unsub2()
       unsub3()
+      taskStore.stopPolling()
       agentStore.stopPolling()
       window.removeEventListener('keydown', handleKeydown)
     }
@@ -122,6 +131,15 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
         <Navigation.TriggerText>Agents</Navigation.TriggerText>
+      </Navigation.Trigger>
+      <Navigation.Trigger
+        onclick={() => (page = { kind: 'orchestrator' })}
+        data-active={page.kind === 'orchestrator' || undefined}
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <Navigation.TriggerText>Orchestrator</Navigation.TriggerText>
       </Navigation.Trigger>
       <Navigation.Trigger
         onclick={() => (page = { kind: 'tmux' })}
@@ -177,6 +195,8 @@
           onback={() => (page = { kind: 'agent-list' })}
           onviewtask={(id) => (page = { kind: 'task-detail', taskId: id })}
         />
+      {:else if page.kind === 'orchestrator'}
+        <Orchestrator />
       {:else if page.kind === 'tmux'}
         <TmuxSessions />
       {/if}

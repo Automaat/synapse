@@ -45,4 +45,5 @@ type StreamEvent struct {
 	Content   string  `json:"content,omitempty"`
 	SessionID string  `json:"session_id,omitempty"`
 	CostUSD   float64 `json:"cost_usd,omitempty"`
+	Subtype   string  `json:"subtype,omitempty"`
 }

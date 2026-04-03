@@ -37,17 +37,22 @@ func NewManager(ctx context.Context, tm *tmux.Manager, emit EmitFunc, logger *sl
 }
 
 func (m *Manager) StartAgent(taskID, taskTitle, mode, prompt string, allowedTools []string) (*Agent, error) {
+	return m.StartAgentInDir(taskID, taskTitle, mode, prompt, allowedTools, "")
+}
+
+func (m *Manager) StartAgentInDir(taskID, taskTitle, mode, prompt string, allowedTools []string, dir string) (*Agent, error) {
 	id := uuid.NewString()[:8]
 	ctx, cancel := context.WithCancel(m.ctx)
 
 	a := &Agent{
-		ID:        id,
-		TaskID:    taskID,
-		Name:      taskTitle,
-		Mode:      mode,
-		State:     StateRunning,
-		StartedAt: time.Now().UTC(),
-		cancel:    cancel,
+		ID:         id,
+		TaskID:     taskID,
+		Name:       taskTitle,
+		Mode:       mode,
+		State:      StateRunning,
+		StartedAt:  time.Now().UTC(),
+		cancel:     cancel,
+		sessionCWD: dir,
 	}
 
 	m.mu.Lock()

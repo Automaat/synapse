@@ -6,9 +6,13 @@ import {tmux} from '../models';
 
 export function AttachAgent(arg1:string):Promise<void>;
 
+export function AttachOrchestrator():Promise<void>;
+
 export function AttachTmuxSession(arg1:string):Promise<void>;
 
 export function CaptureAgentPane(arg1:string):Promise<string>;
+
+export function CaptureOrchestratorPane():Promise<string>;
 
 export function CreateTask(arg1:string,arg2:string,arg3:string):Promise<task.Task>;
 
@@ -20,6 +24,8 @@ export function GetAgentOutput(arg1:string):Promise<Array<agent.StreamEvent>>;
 
 export function GetTask(arg1:string):Promise<task.Task>;
 
+export function IsOrchestratorRunning():Promise<boolean>;
+
 export function KillTmuxSession(arg1:string):Promise<void>;
 
 export function ListAgents():Promise<Array<agent.Agent>>;
@@ -30,7 +36,11 @@ export function ListTmuxSessions():Promise<Array<tmux.SessionInfo>>;
 
 export function StartAgent(arg1:string,arg2:string,arg3:string):Promise<agent.Agent>;
 
+export function StartOrchestrator():Promise<void>;
+
 export function StopAgent(arg1:string):Promise<void>;
+
+export function StopOrchestrator():Promise<void>;
 
 export function TriageTask(arg1:string):Promise<void>;
 

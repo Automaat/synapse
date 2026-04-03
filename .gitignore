@@ -7,6 +7,9 @@ frontend/package.json.md5
 # Runtime data (lives in ~/.synapse at runtime)
 tasks/
 
+# Claude Code
+.claude/settings.local.json
+
 # IDE
 .idea/
 .vscode/
@@ -22,4 +25,5 @@ frontend/test-results/
 frontend/playwright-report/
 
 # Binary
-synapse
+/synapse
+/synapse-cli

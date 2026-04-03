@@ -5,6 +5,7 @@ class TaskStore {
   tasks = $state<Map<string, task.Task>>(new Map())
   loading = $state(false)
   error = $state('')
+  private pollTimer: ReturnType<typeof setInterval> | null = null
 
   get list(): task.Task[] {
     return [...this.tasks.values()].sort((a, b) => {
@@ -57,6 +58,18 @@ class TaskStore {
   async remove(id: string): Promise<void> {
     await DeleteTask(id)
     this.tasks.delete(id)
+  }
+
+  startPolling(): void {
+    this.stopPolling()
+    this.pollTimer = setInterval(() => this.load(), 5000)
+  }
+
+  stopPolling(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
   }
 }
 
