@@ -21,7 +21,10 @@ func (m *Manager) CreateSessionInDir(name, cmd, dir string) error {
 }
 
 func (m *Manager) SendKeys(name, keys string) error {
-	return run("send-keys", "-t", name, keys, "Enter")
+	if err := run("send-keys", "-t", name, "-l", keys); err != nil {
+		return err
+	}
+	return run("send-keys", "-t", name, "Enter")
 }
 
 func (m *Manager) CapturePaneOutput(name string) (string, error) {
