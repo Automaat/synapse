@@ -324,7 +324,7 @@ func (a *App) prepareWorktree(t task.Task) (string, error) {
 		}
 		return wtPath, nil
 	}
-	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, branch); err != nil {
+	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, "origin/"+branch); err != nil {
 		// Branch may exist from a previous run — try checkout instead of new branch
 		if errRe := project.CreateWorktreeExisting(proj.ClonePath, wtPath, wtBranch); errRe != nil {
 			return "", fmt.Errorf("create worktree: %w (retry: %w)", err, errRe)
