@@ -1207,7 +1207,14 @@ func (a *App) handlePRIssue(issue github.PRIssue) {
 	}
 
 	fullPrompt := fmt.Sprintf("# Task: %s\n\n%s", t.Title, prompt)
-	ag, err := a.agents.StartAgentInDir(t.ID, "pr-fix:"+t.Title, "headless", fullPrompt, nil, dir)
+	ag, err := a.agents.Run(agent.RunConfig{
+		TaskID: t.ID,
+		Name:   "pr-fix:" + t.Title,
+		Mode:   "headless",
+		Prompt: fullPrompt,
+		Dir:    dir,
+		Model:  "sonnet",
+	})
 	if err != nil {
 		a.logger.Error("pr-monitor.agent-start", "task_id", t.ID, "err", err)
 		return
