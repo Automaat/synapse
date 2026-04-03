@@ -21,6 +21,8 @@ export function DeleteTask(arg1:string):Promise<void>;
 
 export function DiscoverAgents():Promise<Array<agent.Agent>>;
 
+export function EvaluateTask(arg1:string,arg2:string):Promise<void>;
+
 export function FetchReviews():Promise<github.ReviewSummary>;
 
 export function GetAgentOutput(arg1:string):Promise<Array<agent.StreamEvent>>;
@@ -36,6 +38,8 @@ export function ListAgents():Promise<Array<agent.Agent>>;
 export function ListTasks():Promise<Array<task.Task>>;
 
 export function ListTmuxSessions():Promise<Array<tmux.SessionInfo>>;
+
+export function RegisterSpotlightHotkey():Promise<void>;
 
 export function StartAgent(arg1:string,arg2:string,arg3:string):Promise<agent.Agent>;
 
