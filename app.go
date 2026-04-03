@@ -152,6 +152,9 @@ func (a *App) UpdateTask(id string, updates map[string]any) (task.Task, error) {
 			}
 		}()
 	}
+	if t.Status == task.StatusDone {
+		go a.cleanupWorktree(t.ID)
+	}
 	return t, nil
 }
 
@@ -231,11 +234,8 @@ func (a *App) prepareWorktree(t task.Task) (string, error) {
 	return wtPath, nil
 }
 
-func (a *App) cleanupWorktree(ag *agent.Agent) {
-	if ag.TaskID == "" {
-		return
-	}
-	t, err := a.tasks.Get(ag.TaskID)
+func (a *App) cleanupWorktree(taskID string) {
+	t, err := a.tasks.Get(taskID)
 	if err != nil || t.ProjectID == "" {
 		return
 	}
@@ -698,8 +698,17 @@ func (a *App) handleAgentComplete(ag *agent.Agent) {
 
 	if strings.HasPrefix(ag.Name, "eval:") {
 		a.logger.Info("eval.done", "agent_id", ag.ID, "name", ag.Name)
-		if t, err := a.tasks.Get(ag.TaskID); err == nil && t.Status == task.StatusDone {
-			a.cleanupWorktree(ag)
+		t, err := a.tasks.Get(ag.TaskID)
+		if err != nil {
+			return
+		}
+		if t.Status == task.StatusDone {
+			a.logger.Warn("eval.reverted_done", "agent_id", ag.ID, "task_id", ag.TaskID)
+			if _, uerr := a.tasks.Update(ag.TaskID, map[string]any{
+				"status": string(task.StatusInReview),
+			}); uerr != nil {
+				a.logger.Error("eval.revert_status", "task_id", ag.TaskID, "err", uerr)
+			}
 		}
 		return
 	}
