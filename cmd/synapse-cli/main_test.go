@@ -147,14 +147,14 @@ func TestListFilterStatus(t *testing.T) {
 	mustUnmarshal(t, out, &t2)
 	runCLI(t, "--json", "update", t2.ID, "--status", "in-progress")
 
-	code, out := runCLI(t, "--json", "list", "--status", "new")
+	code, out := runCLI(t, "--json", "list", "--status", "todo")
 	if code != 0 {
 		t.Fatalf("exit %d", code)
 	}
 	var tasks []task.Task
 	mustUnmarshal(t, out, &tasks)
 	if len(tasks) != 1 {
-		t.Errorf("expected 1 new task, got %d", len(tasks))
+		t.Errorf("expected 1 todo task, got %d", len(tasks))
 	}
 }
 
@@ -320,7 +320,7 @@ func TestListBothFilters(t *testing.T) {
 	runCLI(t, "--json", "update", t2.ID, "--status", "in-progress")
 	runCLI(t, "--json", "create", "--title", "no match tag", "--tags", "web")
 
-	code, out := runCLI(t, "--json", "list", "--status", "new", "--tag", "api")
+	code, out := runCLI(t, "--json", "list", "--status", "todo", "--tag", "api")
 	if code != 0 {
 		t.Fatalf("exit %d", code)
 	}

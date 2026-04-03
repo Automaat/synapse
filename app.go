@@ -174,7 +174,7 @@ func (a *App) CreateTask(title, body, mode string) (task.Task, error) {
 		return t, err
 	}
 	a.logAudit(audit.EventTaskCreated, t.ID, "", map[string]any{"title": title, "mode": mode})
-	if t.Status == task.StatusNew {
+	if t.Status == task.StatusTodo {
 		a.logger.Info("auto-triage.start", "task_id", t.ID, "title", t.Title)
 		go func() {
 			if triageErr := a.TriageTask(t.ID); triageErr != nil {

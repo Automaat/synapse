@@ -64,7 +64,7 @@ func (s *Store) Create(title, body, mode string) (Task, error) {
 		ID:        id,
 		Slug:      Slugify(title),
 		Title:     title,
-		Status:    StatusNew,
+		Status:    StatusTodo,
 		AgentMode: mode,
 		CreatedAt: now,
 		UpdatedAt: now,
