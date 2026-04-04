@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Automaat/synapse/internal/executil"
 )
 
 func ParseGitHubURL(raw string) (owner, repo string, err error) {
@@ -41,32 +43,20 @@ func splitOwnerRepo(path string) (owner, repo string, err error) {
 }
 
 func CloneBare(repoURL, destPath string) error {
-	cmd := exec.Command("git", "clone", "--bare", repoURL, destPath)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git clone --bare: %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run("", "git", "clone", "--bare", repoURL, destPath)
 }
 
 func DefaultBranch(barePath string) (string, error) {
-	cmd := exec.Command("git", "symbolic-ref", "HEAD")
-	cmd.Dir = barePath
-	out, err := cmd.Output()
+	ref, err := executil.Output(barePath, "git", "symbolic-ref", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("git symbolic-ref HEAD: %w", err)
+		return "", err
 	}
-	ref := strings.TrimSpace(string(out))
 	// refs/heads/main → main
 	return filepath.Base(ref), nil
 }
 
 func FetchOrigin(barePath string) error {
-	cmd := exec.Command("git", "fetch", "origin")
-	cmd.Dir = barePath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git fetch origin: %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run(barePath, "git", "fetch", "origin")
 }
 
 // SanitizeWorktree cleans up worktree state that would confuse agents:
@@ -132,43 +122,26 @@ func rebaseStateDir(wtPath string) string {
 }
 
 func CreateWorktree(barePath, worktreePath, branch, baseBranch string) error {
-	cmd := exec.Command("git", "worktree", "add", worktreePath, "-b", branch, baseBranch)
-	cmd.Dir = barePath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git worktree add -b: %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run(barePath, "git", "worktree", "add", worktreePath, "-b", branch, baseBranch)
 }
 
 // CreateWorktreeExisting checks out an existing branch into a new worktree.
 func CreateWorktreeExisting(barePath, worktreePath, branch string) error {
-	cmd := exec.Command("git", "worktree", "add", worktreePath, branch)
-	cmd.Dir = barePath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git worktree add (existing): %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run(barePath, "git", "worktree", "add", worktreePath, branch)
 }
 
 // CreateWorktreeDetached creates a worktree in detached HEAD mode from a remote ref.
 // Used for read-only checkouts like code reviews.
 func CreateWorktreeDetached(barePath, worktreePath, ref string) error {
-	cmd := exec.Command("git", "worktree", "add", "--detach", worktreePath, ref)
-	cmd.Dir = barePath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git worktree add --detach: %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run(barePath, "git", "worktree", "add", "--detach", worktreePath, ref)
 }
 
 func ListWorktrees(barePath string) ([]Worktree, error) {
-	cmd := exec.Command("git", "worktree", "list", "--porcelain")
-	cmd.Dir = barePath
-	out, err := cmd.Output()
+	out, err := executil.Output(barePath, "git", "worktree", "list", "--porcelain")
 	if err != nil {
-		return nil, fmt.Errorf("git worktree list: %w", err)
+		return nil, err
 	}
-	return parseWorktreePorcelain(string(out)), nil
+	return parseWorktreePorcelain(out), nil
 }
 
 func parseWorktreePorcelain(raw string) []Worktree {
@@ -208,19 +181,9 @@ func parseWorktreePorcelain(raw string) []Worktree {
 
 // PushUpstream pushes branch to origin with -u to set remote tracking.
 func PushUpstream(worktreePath, branch string) error {
-	cmd := exec.Command("git", "push", "-u", "origin", branch)
-	cmd.Dir = worktreePath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git push -u origin: %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run(worktreePath, "git", "push", "-u", "origin", branch)
 }
 
 func RemoveWorktree(barePath, worktreePath string) error {
-	cmd := exec.Command("git", "worktree", "remove", "--force", worktreePath)
-	cmd.Dir = barePath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git worktree remove: %w: %s", err, string(out))
-	}
-	return nil
+	return executil.Run(barePath, "git", "worktree", "remove", "--force", worktreePath)
 }
