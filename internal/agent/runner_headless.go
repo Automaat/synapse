@@ -69,7 +69,11 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 			_, _ = outFile.WriteString("\n")
 		}
 
-		event := parseStreamEvent(line)
+		event, err := parseStreamEvent(line)
+		if err != nil {
+			m.logger.Warn("agent.headless.parse", "id", a.ID, "err", err, "line", string(line))
+			continue
+		}
 		if event.Type == "" {
 			continue
 		}
@@ -102,10 +106,10 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 	}
 }
 
-func parseStreamEvent(line []byte) StreamEvent {
+func parseStreamEvent(line []byte) (StreamEvent, error) {
 	var raw map[string]any
 	if err := json.Unmarshal(line, &raw); err != nil {
-		return StreamEvent{}
+		return StreamEvent{}, fmt.Errorf("unmarshal stream event: %w", err)
 	}
 
 	eventType, _ := raw["type"].(string)
@@ -135,7 +139,7 @@ func parseStreamEvent(line []byte) StreamEvent {
 		// rate_limit_event, etc — keep type, no content
 	}
 
-	return event
+	return event, nil
 }
 
 func extractMessageContent(raw map[string]any) string {
