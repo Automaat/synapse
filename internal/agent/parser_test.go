@@ -20,6 +20,7 @@ func TestStrVal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := strVal(tt.m, tt.key)
 			if got != tt.want {
 				t.Errorf("strVal() = %q, want %q", got, tt.want)
@@ -83,6 +84,7 @@ func TestParseStreamEvent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parseStreamEvent([]byte(tt.line))
 			if got.Type != tt.want.Type {
 				t.Errorf("Type = %q, want %q", got.Type, tt.want.Type)
@@ -249,6 +251,7 @@ func TestExtractMessageContent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := extractMessageContent(tt.raw)
 			if got != tt.want {
 				t.Errorf("extractMessageContent() = %q, want %q", got, tt.want)
@@ -356,6 +359,7 @@ func TestExtractToolResult(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := extractToolResult(tt.raw)
 			if got != tt.want {
 				t.Errorf("extractToolResult() = %q, want %q", got, tt.want)

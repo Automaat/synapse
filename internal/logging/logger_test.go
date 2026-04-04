@@ -9,6 +9,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), "logs")
 
 	cfg := config.LoggingConfig{
@@ -47,6 +48,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewDefaultLimits(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), "logs")
 
 	cfg := config.LoggingConfig{
@@ -74,6 +76,7 @@ func TestNewDefaultLimits(t *testing.T) {
 }
 
 func TestNewInvalidDir(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoggingConfig{
 		Level:     "info",
 		Dir:       "/dev/null/impossible",
@@ -88,6 +91,7 @@ func TestNewInvalidDir(t *testing.T) {
 }
 
 func TestNewRotatingWriterInvalidPath(t *testing.T) {
+	t.Parallel()
 	_, err := NewRotatingWriter("/nonexistent/dir/test.log", 100, 3)
 	if err == nil {
 		t.Fatal("expected error for invalid path")
@@ -95,6 +99,7 @@ func TestNewRotatingWriterInvalidPath(t *testing.T) {
 }
 
 func TestAgentOutputFileInvalidDir(t *testing.T) {
+	t.Parallel()
 	_, err := NewAgentOutputFile("/dev/null/impossible", "test-id")
 	if err == nil {
 		t.Fatal("expected error for invalid dir")

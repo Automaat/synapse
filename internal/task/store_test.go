@@ -9,6 +9,7 @@ import (
 )
 
 func TestNewStore(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), "tasks")
 	store, err := NewStore(dir)
 	if err != nil {
@@ -28,6 +29,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestStoreCreate(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -63,6 +65,7 @@ func TestStoreCreate(t *testing.T) {
 }
 
 func TestStoreListEmpty(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +81,7 @@ func TestStoreListEmpty(t *testing.T) {
 }
 
 func TestStoreListMultiple(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -99,6 +103,7 @@ func TestStoreListMultiple(t *testing.T) {
 }
 
 func TestStoreListIgnoresNonMarkdown(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	store, err := NewStore(dir)
 	if err != nil {
@@ -123,6 +128,7 @@ func TestStoreListIgnoresNonMarkdown(t *testing.T) {
 }
 
 func TestStoreGet(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -146,6 +152,7 @@ func TestStoreGet(t *testing.T) {
 }
 
 func TestStoreGetNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -158,6 +165,7 @@ func TestStoreGetNotFound(t *testing.T) {
 }
 
 func TestStoreUpdate(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -198,6 +206,7 @@ func TestStoreUpdate(t *testing.T) {
 }
 
 func TestStoreDelete(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -223,6 +232,7 @@ func TestStoreDelete(t *testing.T) {
 }
 
 func TestStoreDeleteNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -234,6 +244,7 @@ func TestStoreDeleteNotFound(t *testing.T) {
 }
 
 func TestStoreUpdateTags(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -269,6 +280,7 @@ func TestStoreUpdateTags(t *testing.T) {
 }
 
 func TestStoreUpdateAgentMode(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -291,6 +303,7 @@ func TestStoreUpdateAgentMode(t *testing.T) {
 }
 
 func TestStoreUpdateProjectID(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -321,6 +334,7 @@ func TestStoreUpdateProjectID(t *testing.T) {
 }
 
 func TestStoreUpdateStatusHumanRequired(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -351,6 +365,7 @@ func TestStoreUpdateStatusHumanRequired(t *testing.T) {
 }
 
 func TestStoreUpdateNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -363,6 +378,7 @@ func TestStoreUpdateNotFound(t *testing.T) {
 }
 
 func TestStoreAddRun(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -400,6 +416,7 @@ func TestStoreAddRun(t *testing.T) {
 }
 
 func TestStoreAddRunMultiple(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -431,6 +448,7 @@ func TestStoreAddRunMultiple(t *testing.T) {
 }
 
 func TestStoreAddRunNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -443,6 +461,7 @@ func TestStoreAddRunNotFound(t *testing.T) {
 }
 
 func TestStoreUpdateRun(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -491,6 +510,7 @@ func TestStoreUpdateRun(t *testing.T) {
 }
 
 func TestStoreUpdateRunNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -503,6 +523,7 @@ func TestStoreUpdateRunNotFound(t *testing.T) {
 }
 
 func TestStoreUpdateRunNoMatchingAgent(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -532,6 +553,7 @@ func TestStoreUpdateRunNoMatchingAgent(t *testing.T) {
 }
 
 func TestStoreCreateDefaultMode(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -547,6 +569,7 @@ func TestStoreCreateDefaultMode(t *testing.T) {
 }
 
 func TestStoreListSkipsMalformed(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	store, err := NewStore(dir)
 	if err != nil {

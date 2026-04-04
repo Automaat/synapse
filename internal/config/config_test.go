@@ -8,6 +8,7 @@ import (
 )
 
 func TestDefaultConfig(t *testing.T) {
+	t.Parallel()
 	cfg := DefaultConfig()
 
 	if cfg.Logging.Level != "info" {
@@ -73,6 +74,7 @@ func TestLoadEnvOverride(t *testing.T) {
 }
 
 func TestSlogLevel(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		level string
 		want  slog.Level
@@ -87,6 +89,7 @@ func TestSlogLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.level, func(t *testing.T) {
+			t.Parallel()
 			cfg := &LoggingConfig{Level: tt.level}
 			if got := cfg.SlogLevel(); got != tt.want {
 				t.Errorf("SlogLevel(%q) = %v, want %v", tt.level, got, tt.want)

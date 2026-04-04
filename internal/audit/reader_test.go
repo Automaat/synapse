@@ -6,6 +6,7 @@ import (
 )
 
 func TestReadFiltersEvents(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	l, err := NewLogger(dir)
 	if err != nil {
@@ -39,6 +40,7 @@ func TestReadFiltersEvents(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := Read(dir, tt.query)
 			if err != nil {
 				t.Fatal(err)
@@ -51,6 +53,7 @@ func TestReadFiltersEvents(t *testing.T) {
 }
 
 func TestReadEmptyDir(t *testing.T) {
+	t.Parallel()
 	events, err := Read(t.TempDir(), Query{
 		Since: time.Now().Add(-time.Hour),
 		Until: time.Now(),

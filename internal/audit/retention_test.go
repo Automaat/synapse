@@ -7,6 +7,7 @@ import (
 )
 
 func TestCleanupRemovesOldFiles(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 
 	files := []string{
@@ -48,6 +49,7 @@ func TestCleanupRemovesOldFiles(t *testing.T) {
 }
 
 func TestCleanupNonexistentDir(t *testing.T) {
+	t.Parallel()
 	if err := Cleanup("/nonexistent/path", 30); err != nil {
 		t.Errorf("expected nil error for nonexistent dir, got %v", err)
 	}
