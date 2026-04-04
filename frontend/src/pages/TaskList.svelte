@@ -60,6 +60,13 @@
 
   // Project dropdown
   let projectDropdownOpen = $state(false)
+  let projectDropdownRef = $state<HTMLDivElement | null>(null)
+
+  function handleWindowClick(e: MouseEvent) {
+    if (projectDropdownOpen && projectDropdownRef && !projectDropdownRef.contains(e.target as Node)) {
+      projectDropdownOpen = false
+    }
+  }
 
   const selectedProjectLabel = $derived(
     selectedProjectId
@@ -150,6 +157,8 @@
   }
 </script>
 
+<svelte:window onclick={handleWindowClick} />
+
 <div class="flex h-full flex-col">
   <!-- Filter bar -->
   <div class="flex flex-wrap items-center gap-3 border-b border-surface-200 px-6 py-3 dark:border-surface-800">
@@ -168,12 +177,11 @@
 
     <!-- Project filter -->
     {#if projectStore.list.length > 0}
-      <div class="relative">
+      <div class="relative" bind:this={projectDropdownRef}>
         <button
           type="button"
           class="flex h-8 items-center gap-2 rounded-md border border-surface-300 bg-surface-50 px-2.5 text-sm dark:border-surface-700 dark:bg-surface-800"
           onclick={() => (projectDropdownOpen = !projectDropdownOpen)}
-          onblur={() => setTimeout(() => (projectDropdownOpen = false), 150)}
         >
           <span class={selectedProjectId ? '' : 'text-surface-400'}>{selectedProjectLabel}</span>
           <svg class="h-3.5 w-3.5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
