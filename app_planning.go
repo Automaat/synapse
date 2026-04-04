@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/Automaat/synapse/internal/agent"
@@ -70,7 +69,7 @@ func (w *TaskWorkflow) TriageTask(id string) error {
 
 	ag, err := w.agents.Run(agent.RunConfig{
 		TaskID:       t.ID,
-		Name:         "triage:" + t.Title,
+		Name:         agent.RoleTriage.AgentName(t.Title),
 		Mode:         "headless",
 		Prompt:       prompt,
 		AllowedTools: []string{"Bash", "Read", "Skill"},
@@ -81,7 +80,7 @@ func (w *TaskWorkflow) TriageTask(id string) error {
 		return err
 	}
 	if err := w.tasks.AddRun(t.ID, task.AgentRun{
-		AgentID: ag.ID, Role: "triage", Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
+		AgentID: ag.ID, Role: string(agent.RoleTriage), Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
 	}); err != nil {
 		w.logger.Error("task.add-run", "task_id", t.ID, "err", err)
 	}
@@ -119,7 +118,7 @@ func (w *TaskWorkflow) PlanTask(id string) error {
 	}
 	ag, err := w.agents.Run(agent.RunConfig{
 		TaskID:       t.ID,
-		Name:         "plan:" + t.Title,
+		Name:         agent.RolePlan.AgentName(t.Title),
 		Mode:         "headless",
 		Prompt:       prompt,
 		AllowedTools: []string{"Bash", "Read", "Glob", "Grep"},
@@ -130,7 +129,7 @@ func (w *TaskWorkflow) PlanTask(id string) error {
 		return err
 	}
 	if err := w.tasks.AddRun(t.ID, task.AgentRun{
-		AgentID: ag.ID, Role: "plan", Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
+		AgentID: ag.ID, Role: string(agent.RolePlan), Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
 	}); err != nil {
 		w.logger.Error("task.add-run", "task_id", t.ID, "err", err)
 	}
@@ -228,7 +227,7 @@ func (w *TaskWorkflow) EvaluateTask(taskID, agentResult string) error {
 
 	ag, err := w.agents.Run(agent.RunConfig{
 		TaskID:       t.ID,
-		Name:         "eval:" + t.Title,
+		Name:         agent.RoleEval.AgentName(t.Title),
 		Mode:         "headless",
 		Prompt:       prompt,
 		AllowedTools: []string{"Bash"},
@@ -239,7 +238,7 @@ func (w *TaskWorkflow) EvaluateTask(taskID, agentResult string) error {
 		return err
 	}
 	if err := w.tasks.AddRun(t.ID, task.AgentRun{
-		AgentID: ag.ID, Role: "eval", Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
+		AgentID: ag.ID, Role: string(agent.RoleEval), Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
 	}); err != nil {
 		w.logger.Error("task.add-run", "task_id", t.ID, "err", err)
 	}
@@ -276,8 +275,10 @@ func (w *TaskWorkflow) handleAgentComplete(ag *agent.Agent) {
 		w.logger.Error("task.update-run", "task_id", ag.TaskID, "agent_id", ag.ID, "err", err)
 	}
 
+	role := agent.RoleFromName(ag.Name)
+
 	// Notify for non-system agents
-	if !strings.HasPrefix(ag.Name, "triage:") && !strings.HasPrefix(ag.Name, "eval:") {
+	if !role.IsSystem() {
 		level := notification.LevelSuccess
 		title := "Agent completed"
 		if ag.State == agent.StateStopped && !hasResultEvent(ag) {
@@ -287,13 +288,15 @@ func (w *TaskWorkflow) handleAgentComplete(ag *agent.Agent) {
 		w.notifier.Send(level, title, ag.Name, ag.TaskID, ag.ID)
 	}
 
-	if strings.HasPrefix(ag.Name, "triage:") || strings.HasPrefix(ag.Name, "eval:") {
+	switch role {
+	case agent.RoleTriage:
 		w.logger.Info("eval.skip", "agent_id", ag.ID, "name", ag.Name, "reason", "system_agent")
 		w.logAudit(audit.EventTriageCompleted, ag.TaskID, ag.ID, agentData)
-		return
-	}
 
-	if strings.HasPrefix(ag.Name, "pr-fix:") {
+	case agent.RoleEval:
+		w.completeEvalAgent(ag, agentData)
+
+	case agent.RolePRFix:
 		w.logger.Info("pr-fix.complete", "agent_id", ag.ID, "task_id", ag.TaskID)
 		w.logAudit(audit.EventPRFixAgentStarted, ag.TaskID, ag.ID, agentData)
 		go func() {
@@ -301,44 +304,35 @@ func (w *TaskWorkflow) handleAgentComplete(ag *agent.Agent) {
 				w.logger.Error("pr-fix.eval", "task_id", ag.TaskID, "err", err)
 			}
 		}()
-		return
-	}
 
-	if strings.HasPrefix(ag.Name, "plan:") {
+	case agent.RolePlan:
 		w.completePlanAgent(ag, resultContent, agentData)
-		return
-	}
 
-	if strings.HasPrefix(ag.Name, "eval:") {
-		w.completeEvalAgent(ag, agentData)
-		return
-	}
-
-	if strings.HasPrefix(ag.Name, "review:") {
+	case agent.RoleReview:
 		w.logger.Info("review.complete", "agent_id", ag.ID, "task_id", ag.TaskID)
 		w.logAudit(audit.EventReviewStarted, ag.TaskID, ag.ID, agentData)
 		if _, err := w.tasks.Update(ag.TaskID, map[string]any{"reviewed": true}); err != nil {
 			w.logger.Error("review.mark-reviewed", "task_id", ag.TaskID, "err", err)
 		}
 		go w.resolveReviewStatus(ag.TaskID)
-		return
-	}
 
-	eventType := audit.EventAgentCompleted
-	if ag.State != agent.StateStopped {
-		eventType = audit.EventAgentFailed
-	}
-	w.logAudit(eventType, ag.TaskID, ag.ID, agentData)
-
-	go func() {
-		if err := w.EvaluateTask(ag.TaskID, resultContent); err != nil {
-			w.logger.Error("auto-evaluate.failed", "task_id", ag.TaskID, "agent_id", ag.ID, "err", err)
+	default:
+		eventType := audit.EventAgentCompleted
+		if ag.State != agent.StateStopped {
+			eventType = audit.EventAgentFailed
 		}
-	}()
+		w.logAudit(eventType, ag.TaskID, ag.ID, agentData)
 
-	// Cleanup worktree if task is done and no other agent is running.
-	if t, err := w.tasks.Get(ag.TaskID); err == nil && t.Status == task.StatusDone {
-		go w.agentOrch.cleanupWorktree(ag.TaskID)
+		go func() {
+			if err := w.EvaluateTask(ag.TaskID, resultContent); err != nil {
+				w.logger.Error("auto-evaluate.failed", "task_id", ag.TaskID, "agent_id", ag.ID, "err", err)
+			}
+		}()
+
+		// Cleanup worktree if task is done and no other agent is running.
+		if t, err := w.tasks.Get(ag.TaskID); err == nil && t.Status == task.StatusDone {
+			go w.agentOrch.cleanupWorktree(ag.TaskID)
+		}
 	}
 }
 

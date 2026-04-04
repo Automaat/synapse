@@ -251,7 +251,7 @@ func (a *App) startPRFixReviewAgent(taskID string) error {
 	prompt := fmt.Sprintf("# Task: %s\n\n%s\n\n---\n\nFix the issues raised in the PR review. Push the changes when done.", t.Title, t.Body)
 	ag, err := a.agents.Run(agent.RunConfig{
 		TaskID:       taskID,
-		Name:         "pr-fix:" + t.Title,
+		Name:         agent.RolePRFix.AgentName(t.Title),
 		Mode:         t.AgentMode,
 		Prompt:       prompt,
 		AllowedTools: t.AllowedTools,
@@ -264,7 +264,7 @@ func (a *App) startPRFixReviewAgent(taskID string) error {
 
 	a.logAudit(audit.EventAgentStarted, taskID, ag.ID, map[string]any{"mode": t.AgentMode, "title": t.Title, "role": "pr-fix"})
 	if err := a.tasks.AddRun(taskID, task.AgentRun{
-		AgentID: ag.ID, Role: "pr-fix", Mode: t.AgentMode,
+		AgentID: ag.ID, Role: string(agent.RolePRFix), Mode: t.AgentMode,
 		State: string(agent.StateRunning), StartedAt: ag.StartedAt,
 	}); err != nil {
 		a.logger.Error("task.add-run", "task_id", taskID, "err", err)

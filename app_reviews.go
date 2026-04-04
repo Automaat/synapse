@@ -159,7 +159,7 @@ func (r *ReviewHandler) startReviewAgent(t task.Task) error {
 
 	ag, err := r.agents.Run(agent.RunConfig{
 		TaskID: t.ID,
-		Name:   "review:" + t.Title,
+		Name:   agent.RoleReview.AgentName(t.Title),
 		Mode:   "headless",
 		Prompt: prompt,
 		Dir:    dir,
@@ -169,7 +169,7 @@ func (r *ReviewHandler) startReviewAgent(t task.Task) error {
 		return err
 	}
 	if err := r.tasks.AddRun(t.ID, task.AgentRun{
-		AgentID: ag.ID, Role: "review", Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
+		AgentID: ag.ID, Role: string(agent.RoleReview), Mode: "headless", State: string(agent.StateRunning), StartedAt: ag.StartedAt,
 	}); err != nil {
 		r.logger.Error("task.add-run", "task_id", t.ID, "err", err)
 	}
@@ -405,7 +405,7 @@ func (r *ReviewHandler) handlePRIssue(issue github.PRIssue) {
 	fullPrompt := fmt.Sprintf("# Task: %s\n\n%s", t.Title, prompt)
 	ag, err := r.agents.Run(agent.RunConfig{
 		TaskID: t.ID,
-		Name:   "pr-fix:" + t.Title,
+		Name:   agent.RolePRFix.AgentName(t.Title),
 		Mode:   "headless",
 		Prompt: fullPrompt,
 		Dir:    dir,
@@ -422,7 +422,7 @@ func (r *ReviewHandler) handlePRIssue(issue github.PRIssue) {
 	})
 
 	if err := r.tasks.AddRun(t.ID, task.AgentRun{
-		AgentID: ag.ID, Role: "pr-fix", Mode: "headless",
+		AgentID: ag.ID, Role: string(agent.RolePRFix), Mode: "headless",
 		State: string(agent.StateRunning), StartedAt: ag.StartedAt,
 	}); err != nil {
 		r.logger.Error("pr-monitor.add-run", "task_id", t.ID, "err", err)
