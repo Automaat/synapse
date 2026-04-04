@@ -14,6 +14,7 @@ const mockTask = {
   branch: '',
   prNumber: 0,
   issue: '',
+  statusReason: '',
   reviewed: false,
   agentRuns: [],
   createdAt: '2026-04-01T00:00:00Z',
