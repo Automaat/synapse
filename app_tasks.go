@@ -73,7 +73,7 @@ func (a *App) UpdateTask(id string, updates map[string]any) (task.Task, error) {
 		} else {
 			a.logger.Info("auto-implement.start", "task_id", t.ID, "title", t.Title)
 			a.wg.Go(func() {
-				if _, err := a.StartAgent(t.ID, t.AgentMode, "Implement this task. When done, create a draft PR with `gh pr create --draft`."); err != nil {
+				if _, err := a.agentOrch.StartAgent(t.ID, t.AgentMode, "Implement this task. When done, create a draft PR with `gh pr create --draft`."); err != nil {
 					a.logger.Error("auto-implement.failed", "task_id", t.ID, "err", err)
 				}
 			})
