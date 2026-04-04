@@ -46,13 +46,13 @@ test.describe('Task List', () => {
     await expect(page.getByText('Design database migration strategy')).toBeVisible()
   })
 
-  test('shows all kanban columns', async ({ page }) => {
+  test('shows kanban columns (Done hidden by default)', async ({ page }) => {
     await goToTaskList(page)
 
     await expect(page.getByRole('heading', { name: 'Todo' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'In Progress' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'In Review' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Done' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Done' })).not.toBeVisible()
   })
 
   test('shows app bar with Tasks title and New Task button', async ({ page }) => {
