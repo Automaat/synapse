@@ -205,6 +205,10 @@ func (a *App) restartStaleInProgress() {
 		if slices.Contains(t.Tags, "review") {
 			continue
 		}
+		if t.ProjectID == "" {
+			a.logger.Warn("restart-stale.skip", "task_id", t.ID, "reason", "no project_id")
+			continue
+		}
 		a.logger.Info("restart-stale.start", "task_id", t.ID, "title", t.Title)
 		taskID := t.ID
 		mode := t.AgentMode
