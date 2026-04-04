@@ -66,6 +66,10 @@
     <h3 class="text-sm font-semibold leading-tight">{t.title}</h3>
   </div>
 
+  {#if t.statusReason}
+    <p class="mb-1.5 line-clamp-2 text-xs text-warning-600 dark:text-warning-400">{t.statusReason}</p>
+  {/if}
+
   <div class="flex flex-wrap items-center gap-1.5 text-xs text-surface-500">
     <span class="rounded bg-surface-200 px-1.5 py-0.5 dark:bg-surface-700">
       {t.agentMode}

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
-const frontmatterDelim = "---"
+var frontmatterRe = regexp.MustCompile(`(?m)^---\s*$`)
 
 func Parse(path string) (Task, error) {
 	data, err := os.ReadFile(path)
@@ -26,17 +27,19 @@ func Parse(path string) (Task, error) {
 }
 
 func ParseBytes(data []byte) (Task, error) {
-	parts := bytes.SplitN(data, []byte(frontmatterDelim), 3)
-	if len(parts) < 3 {
+	locs := frontmatterRe.FindAllIndex(data, 2)
+	if len(locs) < 2 {
 		return Task{}, fmt.Errorf("invalid frontmatter: expected --- delimiters")
 	}
 
+	fm := data[locs[0][1]:locs[1][0]]
+
 	var t Task
-	if err := yaml.Unmarshal(parts[1], &t); err != nil {
+	if err := yaml.Unmarshal(fm, &t); err != nil {
 		return Task{}, fmt.Errorf("unmarshal frontmatter: %w", err)
 	}
 
-	t.Body = string(bytes.TrimSpace(parts[2]))
+	t.Body = string(bytes.TrimSpace(data[locs[1][1]:]))
 	return t, nil
 }
 
@@ -49,9 +52,9 @@ func Marshal(t Task) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString(frontmatterDelim + "\n")
+	buf.WriteString("---" + "\n")
 	buf.Write(fm)
-	buf.WriteString(frontmatterDelim + "\n")
+	buf.WriteString("---" + "\n")
 	if t.Body != "" {
 		buf.WriteString(t.Body)
 		buf.WriteString("\n")
