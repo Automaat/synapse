@@ -94,6 +94,10 @@ func (m *Manager) PaneCommand(name string) (string, error) {
 	return output("list-panes", "-t", name, "-F", "#{pane_current_command}")
 }
 
+func (m *Manager) PanePID(name string) (string, error) {
+	return output("list-panes", "-t", name, "-F", "#{pane_pid}")
+}
+
 func run(args ...string) error {
 	cmd := exec.Command("tmux", args...)
 	if out, err := cmd.CombinedOutput(); err != nil {

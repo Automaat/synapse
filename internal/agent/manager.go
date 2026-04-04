@@ -271,20 +271,34 @@ func (m *Manager) CheckInteractiveSessions() {
 			m.markStopped(a)
 			continue
 		}
-		out, err := m.tmux.CapturePaneOutput(a.TmuxSession)
-		if err != nil {
+		// Resolve claude session via tmux pane PID → ~/.claude/sessions/{pid}.json
+		if a.SessionID == "" {
+			m.resolveInteractiveSession(a)
+		}
+		if a.SessionID == "" {
 			continue
 		}
-		// Detect idle: pane has the ❯ input prompt and shows activity markers
-		// (tool use ⏺, cost ✻) meaning agent worked then returned to prompt.
-		hasPrompt := strings.Contains(out, "\u276f") && !strings.Contains(out, "Yes, I accept")
-		hasActivity := strings.Contains(out, "\u23fa") || strings.Contains(out, "\u273b")
-		if !a.tmuxActive && hasActivity {
-			a.tmuxActive = true
-		}
-		if a.tmuxActive && hasPrompt && hasActivity {
-			m.logger.Info("agent.interactive.idle", "id", a.ID, "session", a.TmuxSession)
+		state := inferState(a.sessionCWD, a.SessionID)
+		if state == StateIdle {
+			m.logger.Info("agent.interactive.idle", "id", a.ID, "session", a.TmuxSession, "claude_session", a.SessionID)
 			m.markStopped(a)
+		}
+	}
+}
+
+// resolveInteractiveSession reads the tmux pane PID, then looks up
+// ~/.claude/sessions/{pid}.json to find the claude session ID.
+func (m *Manager) resolveInteractiveSession(a *Agent) {
+	pidStr, err := m.tmux.PanePID(a.TmuxSession)
+	if err != nil {
+		return
+	}
+	pidStr = strings.TrimSpace(pidStr)
+	sess := readClaudeSessionByPID(pidStr)
+	if sess.SessionID != "" {
+		a.SessionID = sess.SessionID
+		if a.sessionCWD == "" {
+			a.sessionCWD = sess.CWD
 		}
 	}
 }

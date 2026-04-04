@@ -36,7 +36,6 @@ type Agent struct {
 	cmd          *exec.Cmd
 	cancel       context.CancelFunc
 	sessionCWD   string
-	tmuxActive   bool // true once interactive agent started working (left initial prompt)
 }
 
 func (a *Agent) Output() []StreamEvent {
