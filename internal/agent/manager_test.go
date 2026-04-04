@@ -405,6 +405,34 @@ func TestCapturePaneAfterStop(t *testing.T) {
 	}
 }
 
+func TestHasRunningAgentForTask(t *testing.T) {
+	m, _ := newTestManager(t)
+
+	// No agents — always false.
+	if m.HasRunningAgentForTask("task-1") {
+		t.Error("expected false with no agents")
+	}
+
+	// Manually register a running agent for task-1.
+	running := &Agent{ID: "a1", TaskID: "task-1", State: StateRunning, cancel: func() {}}
+	m.mu.Lock()
+	m.agents["a1"] = running
+	m.mu.Unlock()
+
+	if !m.HasRunningAgentForTask("task-1") {
+		t.Error("expected true for running agent on task-1")
+	}
+	if m.HasRunningAgentForTask("task-2") {
+		t.Error("expected false for different task")
+	}
+
+	// Stopped agent — should return false.
+	running.State = StateStopped
+	if m.HasRunningAgentForTask("task-1") {
+		t.Error("expected false for stopped agent")
+	}
+}
+
 func TestShutdown(t *testing.T) {
 	m, _ := newTestManager(t)
 
