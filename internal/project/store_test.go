@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewStore(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), "projects")
 	clonesDir := filepath.Join(t.TempDir(), "clones")
 	store, err := NewStore(dir, clonesDir)
@@ -29,6 +30,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestStoreListEmpty(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +46,7 @@ func TestStoreListEmpty(t *testing.T) {
 }
 
 func TestStoreWriteAndGet(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -79,6 +82,7 @@ func TestStoreWriteAndGet(t *testing.T) {
 }
 
 func TestStoreGetNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +95,7 @@ func TestStoreGetNotFound(t *testing.T) {
 }
 
 func TestStoreListMultiple(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -113,6 +118,7 @@ func TestStoreListMultiple(t *testing.T) {
 }
 
 func TestStoreListIgnoresNonYAML(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	store, err := NewStore(dir, t.TempDir())
 	if err != nil {
@@ -137,6 +143,7 @@ func TestStoreListIgnoresNonYAML(t *testing.T) {
 }
 
 func TestStoreDeleteNotFound(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -148,6 +155,7 @@ func TestStoreDeleteNotFound(t *testing.T) {
 }
 
 func TestStoreFilePath(t *testing.T) {
+	t.Parallel()
 	store := &Store{dir: "/tmp/projects"}
 	path := store.filePath("owner/repo")
 	if filepath.Base(path) != "owner--repo.yaml" {
@@ -156,6 +164,7 @@ func TestStoreFilePath(t *testing.T) {
 }
 
 func TestStoreCreateInvalidURL(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -168,6 +177,7 @@ func TestStoreCreateInvalidURL(t *testing.T) {
 }
 
 func TestStoreCreateDuplicate(t *testing.T) {
+	t.Parallel()
 	store, err := NewStore(t.TempDir(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -186,6 +196,7 @@ func TestStoreCreateDuplicate(t *testing.T) {
 }
 
 func TestStoreDeleteCleansClone(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	clonesDir := t.TempDir()
 	store, err := NewStore(dir, clonesDir)

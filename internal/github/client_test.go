@@ -7,6 +7,7 @@ import (
 )
 
 func TestConvertPRs_basic(t *testing.T) {
+	t.Parallel()
 	nodes := []gqlPR{
 		{
 			Number:         42,
@@ -54,6 +55,7 @@ func TestConvertPRs_basic(t *testing.T) {
 }
 
 func TestConvertPRs_mergeable(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		mergeable string
@@ -67,6 +69,7 @@ func TestConvertPRs_mergeable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			node := gqlPR{
 				Number:    1,
 				Title:     "test",
@@ -90,6 +93,7 @@ func TestConvertPRs_mergeable(t *testing.T) {
 }
 
 func TestConvertPRs_filtersBot(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		login     string
@@ -103,6 +107,7 @@ func TestConvertPRs_filtersBot(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			nodes := []gqlPR{{
 				Number: 1,
 				Title:  "test",
@@ -122,6 +127,7 @@ func TestConvertPRs_filtersBot(t *testing.T) {
 }
 
 func TestConvertPRs_labels(t *testing.T) {
+	t.Parallel()
 	nodes := []gqlPR{{
 		Number: 1,
 		Title:  "test",
@@ -154,6 +160,7 @@ func TestConvertPRs_labels(t *testing.T) {
 }
 
 func TestConvertPRs_ciStatus(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		state  string
@@ -168,6 +175,7 @@ func TestConvertPRs_ciStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			node := gqlPR{
 				Number: 1,
 				Title:  "test",
@@ -208,6 +216,7 @@ func TestConvertPRs_ciStatus(t *testing.T) {
 }
 
 func TestConvertPRs_unresolvedThreads(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		threads  []bool
@@ -221,6 +230,7 @@ func TestConvertPRs_unresolvedThreads(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			node := gqlPR{
 				Number: 1,
 				Title:  "test",
@@ -249,6 +259,7 @@ func TestConvertPRs_unresolvedThreads(t *testing.T) {
 }
 
 func TestConvertPRs_emptyInput(t *testing.T) {
+	t.Parallel()
 	prs := convertPRs(nil)
 	if len(prs) != 0 {
 		t.Errorf("got %d PRs for nil input, want 0", len(prs))
@@ -261,6 +272,7 @@ func TestConvertPRs_emptyInput(t *testing.T) {
 }
 
 func TestConvertPRs_mixedBotAndUser(t *testing.T) {
+	t.Parallel()
 	nodes := []gqlPR{
 		{Number: 1, Title: "bot pr", URL: "https://example.com/1"},
 		{Number: 2, Title: "user pr", URL: "https://example.com/2"},
@@ -291,6 +303,7 @@ func TestConvertPRs_mixedBotAndUser(t *testing.T) {
 }
 
 func TestIsBot(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		typeName string
 		login    string
@@ -305,6 +318,7 @@ func TestIsBot(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.login, func(t *testing.T) {
+			t.Parallel()
 			if got := isBot(tt.typeName, tt.login); got != tt.want {
 				t.Errorf("isBot(%q, %q) = %v, want %v", tt.typeName, tt.login, got, tt.want)
 			}
@@ -313,6 +327,7 @@ func TestIsBot(t *testing.T) {
 }
 
 func TestParseGQLResponse(t *testing.T) {
+	t.Parallel()
 	raw := `{
 		"data": {
 			"search": {
@@ -368,6 +383,7 @@ func TestParseGQLResponse(t *testing.T) {
 }
 
 func TestParseGQLResponse_errors(t *testing.T) {
+	t.Parallel()
 	raw := `{"data":{"search":{"nodes":[]}},"errors":[{"message":"rate limited"}]}`
 
 	var resp gqlResponse
@@ -395,6 +411,7 @@ func (f *fakeExecer) run(_ ...string) ([]byte, error) {
 }
 
 func TestSearchPRsWith_success(t *testing.T) {
+	t.Parallel()
 	response := `{
 		"data": {
 			"search": {
@@ -428,6 +445,7 @@ func TestSearchPRsWith_success(t *testing.T) {
 }
 
 func TestSearchPRsWith_execError(t *testing.T) {
+	t.Parallel()
 	fe := &fakeExecer{
 		output: []byte("gh: not logged in"),
 		err:    fmt.Errorf("exit status 1"),
@@ -442,6 +460,7 @@ func TestSearchPRsWith_execError(t *testing.T) {
 }
 
 func TestSearchPRsWith_invalidJSON(t *testing.T) {
+	t.Parallel()
 	fe := &fakeExecer{output: []byte("not json")}
 	_, err := searchPRsWith(fe, "is:pr")
 	if err == nil {
@@ -450,6 +469,7 @@ func TestSearchPRsWith_invalidJSON(t *testing.T) {
 }
 
 func TestSearchPRsWith_graphqlError(t *testing.T) {
+	t.Parallel()
 	response := `{"data":{"search":{"nodes":[]}},"errors":[{"message":"rate limited"}]}`
 	fe := &fakeExecer{output: []byte(response)}
 	_, err := searchPRsWith(fe, "is:pr")
@@ -462,6 +482,7 @@ func TestSearchPRsWith_graphqlError(t *testing.T) {
 }
 
 func TestFetchReviewsWith_success(t *testing.T) {
+	t.Parallel()
 	response := `{
 		"data": {
 			"search": {
@@ -498,6 +519,7 @@ func TestFetchReviewsWith_success(t *testing.T) {
 }
 
 func TestFetchReviewsWith_firstCallFails(t *testing.T) {
+	t.Parallel()
 	fe := &fakeExecer{
 		output: []byte("auth error"),
 		err:    fmt.Errorf("exit 1"),
@@ -509,6 +531,7 @@ func TestFetchReviewsWith_firstCallFails(t *testing.T) {
 }
 
 func TestParseGQLResponse_botFiltered(t *testing.T) {
+	t.Parallel()
 	raw := `{
 		"data": {
 			"search": {

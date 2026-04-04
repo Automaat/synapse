@@ -6,6 +6,7 @@ import (
 )
 
 func TestSummarize(t *testing.T) {
+	t.Parallel()
 	base := time.Date(2026, 4, 3, 10, 0, 0, 0, time.UTC)
 
 	events := []Event{
@@ -51,6 +52,7 @@ func TestSummarize(t *testing.T) {
 }
 
 func TestSummarizeEmpty(t *testing.T) {
+	t.Parallel()
 	s := Summarize(nil, time.Now().Add(-time.Hour), time.Now())
 	if s.TasksCreated != 0 || s.TotalCostUSD != 0 {
 		t.Error("empty summary should have zero values")

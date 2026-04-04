@@ -8,6 +8,7 @@ import (
 )
 
 func TestParseGitHubURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		url       string
@@ -29,6 +30,7 @@ func TestParseGitHubURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			owner, repo, err := ParseGitHubURL(tt.url)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("err = %v, wantErr = %v", err, tt.wantErr)
@@ -44,6 +46,7 @@ func TestParseGitHubURL(t *testing.T) {
 }
 
 func TestSplitOwnerRepo(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		path      string
 		wantOwner string
@@ -59,6 +62,7 @@ func TestSplitOwnerRepo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
 			owner, repo, err := splitOwnerRepo(tt.path)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("err = %v, wantErr = %v", err, tt.wantErr)
@@ -115,6 +119,7 @@ func initRepoWithCommit(t *testing.T) string {
 }
 
 func TestCloneBare(t *testing.T) {
+	t.Parallel()
 	if !hasGit() {
 		t.Skip("git not available")
 	}
@@ -132,6 +137,7 @@ func TestCloneBare(t *testing.T) {
 }
 
 func TestCloneBareInvalidURL(t *testing.T) {
+	t.Parallel()
 	if !hasGit() {
 		t.Skip("git not available")
 	}
@@ -143,6 +149,7 @@ func TestCloneBareInvalidURL(t *testing.T) {
 }
 
 func TestDefaultBranch(t *testing.T) {
+	t.Parallel()
 	if !hasGit() {
 		t.Skip("git not available")
 	}
@@ -158,6 +165,7 @@ func TestDefaultBranch(t *testing.T) {
 }
 
 func TestFetchOriginNoRemote(t *testing.T) {
+	t.Parallel()
 	if !hasGit() {
 		t.Skip("git not available")
 	}
@@ -170,6 +178,7 @@ func TestFetchOriginNoRemote(t *testing.T) {
 }
 
 func TestCreateAndRemoveWorktree(t *testing.T) {
+	t.Parallel()
 	if !hasGit() {
 		t.Skip("git not available")
 	}
@@ -204,6 +213,7 @@ func TestCreateAndRemoveWorktree(t *testing.T) {
 }
 
 func TestParseWorktreePorcelain(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		raw        string
@@ -235,6 +245,7 @@ func TestParseWorktreePorcelain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parseWorktreePorcelain(tt.raw)
 			if len(got) != tt.wantLen {
 				t.Fatalf("len = %d, want %d", len(got), tt.wantLen)
@@ -253,6 +264,7 @@ func TestParseWorktreePorcelain(t *testing.T) {
 }
 
 func TestCreateWorktreeInvalidBase(t *testing.T) {
+	t.Parallel()
 	if !hasGit() {
 		t.Skip("git not available")
 	}

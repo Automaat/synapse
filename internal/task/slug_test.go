@@ -3,6 +3,7 @@ package task
 import "testing"
 
 func TestSlugify(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		title string
 		want  string
@@ -26,6 +27,7 @@ func TestSlugify(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.title, func(t *testing.T) {
+			t.Parallel()
 			got := Slugify(tt.title)
 			if got != tt.want {
 				t.Errorf("Slugify(%q) = %q, want %q", tt.title, got, tt.want)

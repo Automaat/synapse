@@ -8,6 +8,7 @@ import (
 )
 
 func TestRotationTriggersAtMaxSize(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.log")
 
@@ -43,6 +44,7 @@ func TestRotationTriggersAtMaxSize(t *testing.T) {
 }
 
 func TestMaxFilesCleanup(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.log")
 
@@ -71,6 +73,7 @@ func TestMaxFilesCleanup(t *testing.T) {
 }
 
 func TestConcurrentWrites(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.log")
 
@@ -94,6 +97,7 @@ func TestConcurrentWrites(t *testing.T) {
 }
 
 func TestRestartPicksUpExistingSize(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.log")
 
@@ -119,6 +123,7 @@ func TestRestartPicksUpExistingSize(t *testing.T) {
 }
 
 func TestAgentOutputFile(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 
 	f, err := NewAgentOutputFile(dir, "abc123")

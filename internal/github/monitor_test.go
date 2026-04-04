@@ -3,6 +3,7 @@ package github
 import "testing"
 
 func TestMatchTaskPRs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		prs   []PullRequest
@@ -79,6 +80,7 @@ func TestMatchTaskPRs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := MatchTaskPRs(tt.prs, tt.tasks)
 			if len(got) != len(tt.want) {
 				t.Fatalf("got %d issues, want %d", len(got), len(tt.want))
@@ -96,6 +98,7 @@ func TestMatchTaskPRs(t *testing.T) {
 }
 
 func TestMatchReviewPRs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		prs      []PullRequest
@@ -128,6 +131,7 @@ func TestMatchReviewPRs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := MatchReviewPRs(tt.prs, tt.projects)
 			if len(got) != tt.want {
 				t.Fatalf("got %d matches, want %d", len(got), tt.want)

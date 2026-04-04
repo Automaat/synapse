@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseBytes(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		input   string
@@ -93,6 +94,7 @@ allowed_tools: [Read, Write, Bash]
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := ParseBytes([]byte(tt.input))
 			if tt.wantErr {
 				if err == nil {
@@ -129,6 +131,7 @@ allowed_tools: [Read, Write, Bash]
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.md")
 	content := `---
@@ -154,6 +157,7 @@ Body here`
 }
 
 func TestParseNonexistentFile(t *testing.T) {
+	t.Parallel()
 	_, err := Parse("/nonexistent/path.md")
 	if err == nil {
 		t.Fatal("expected error for nonexistent file")
@@ -161,6 +165,7 @@ func TestParseNonexistentFile(t *testing.T) {
 }
 
 func TestMarshal(t *testing.T) {
+	t.Parallel()
 	task := Task{
 		ID:        "m1",
 		Title:     "Marshal test",
@@ -193,6 +198,7 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestMarshalRoundTrip(t *testing.T) {
+	t.Parallel()
 	original := Task{
 		ID:        "rt1",
 		Title:     "Round trip",
@@ -230,6 +236,7 @@ func TestMarshalRoundTrip(t *testing.T) {
 }
 
 func TestMarshalEmptyBody(t *testing.T) {
+	t.Parallel()
 	task := Task{ID: "e1", Title: "No body", Status: StatusTodo}
 	data, err := Marshal(task)
 	if err != nil {
@@ -243,6 +250,7 @@ func TestMarshalEmptyBody(t *testing.T) {
 }
 
 func TestMarshalRoundTripAllowedTools(t *testing.T) {
+	t.Parallel()
 	original := Task{
 		ID:           "at1",
 		Title:        "Tools roundtrip",
@@ -272,6 +280,7 @@ func TestMarshalRoundTripAllowedTools(t *testing.T) {
 }
 
 func TestMarshalRoundTripAgentRuns(t *testing.T) {
+	t.Parallel()
 	now := time.Now().UTC().Truncate(time.Second)
 	original := Task{
 		ID:        "ar1",
@@ -335,6 +344,7 @@ func TestMarshalRoundTripAgentRuns(t *testing.T) {
 }
 
 func TestMarshalUpdatesTimestamp(t *testing.T) {
+	t.Parallel()
 	before := time.Now().UTC().Add(-time.Second)
 	task := Task{
 		ID:     "ts1",
@@ -358,6 +368,7 @@ func TestMarshalUpdatesTimestamp(t *testing.T) {
 }
 
 func TestParseBytesSpecialCharsInBody(t *testing.T) {
+	t.Parallel()
 	input := "---\nid: sc1\ntitle: Special\nstatus: todo\n---\n## Code\n```go\nfunc main() { fmt.Println(\"hello\") }\n```\n\n- Item with `backticks`\n- Item with *emphasis*"
 	task, err := ParseBytes([]byte(input))
 	if err != nil {

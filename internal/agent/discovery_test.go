@@ -97,6 +97,7 @@ func TestInferState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dir := t.TempDir()
 			projectDir := filepath.Join(dir, "projects", "-test-project")
 			if err := os.MkdirAll(projectDir, 0o755); err != nil {

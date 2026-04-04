@@ -8,6 +8,7 @@ import (
 )
 
 func TestLoggerWritesEvent(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	l, err := NewLogger(dir)
 	if err != nil {
@@ -36,6 +37,7 @@ func TestLoggerWritesEvent(t *testing.T) {
 }
 
 func TestLoggerRotatesDaily(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	l, err := NewLogger(dir)
 	if err != nil {
