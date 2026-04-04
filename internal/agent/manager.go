@@ -218,7 +218,45 @@ func (m *Manager) CapturePane(agentID string) (string, error) {
 	if a.State == StateStopped {
 		return "", nil
 	}
-	return m.tmux.CapturePaneOutput(a.TmuxSession)
+	out, captureErr := m.tmux.CapturePaneOutput(a.TmuxSession)
+	if captureErr != nil && !m.tmux.SessionExists(a.TmuxSession) {
+		m.logger.Warn("agent.tmux.gone", "id", agentID, "session", a.TmuxSession)
+		m.markStopped(a)
+		return "", nil
+	}
+	return out, captureErr
+}
+
+// markStopped transitions an agent to stopped and emits the state event.
+func (m *Manager) markStopped(a *Agent) {
+	a.State = StateStopped
+	if a.cancel != nil {
+		a.cancel()
+	}
+	m.emit("agent:state:"+a.ID, a)
+	if m.onComplete != nil {
+		m.onComplete(a)
+	}
+}
+
+// CheckInteractiveSessions detects dead tmux sessions for interactive agents
+// and marks them as stopped. Called periodically from the app layer.
+func (m *Manager) CheckInteractiveSessions() {
+	m.mu.RLock()
+	var stale []*Agent
+	for _, a := range m.agents {
+		if a.Mode == "interactive" && a.State == StateRunning && a.TmuxSession != "" {
+			if !m.tmux.SessionExists(a.TmuxSession) {
+				stale = append(stale, a)
+			}
+		}
+	}
+	m.mu.RUnlock()
+
+	for _, a := range stale {
+		m.logger.Warn("agent.tmux.gone", "id", a.ID, "session", a.TmuxSession)
+		m.markStopped(a)
+	}
 }
 
 func (m *Manager) Shutdown() {
