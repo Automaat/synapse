@@ -4,6 +4,7 @@ import TaskCard from './TaskCard.svelte'
 
 const mockTask = {
   id: 'task-1',
+  slug: 'test-task',
   title: 'Test Task',
   status: 'todo',
   agentMode: 'headless',
@@ -12,6 +13,7 @@ const mockTask = {
   projectId: '',
   branch: '',
   prNumber: 0,
+  reviewed: false,
   agentRuns: [],
   createdAt: '2026-04-01T00:00:00Z',
   updatedAt: '2026-04-01T00:00:00Z',

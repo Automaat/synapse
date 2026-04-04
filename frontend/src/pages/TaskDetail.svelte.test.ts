@@ -8,7 +8,7 @@ const mockStart = vi.fn()
 const mockStop = vi.fn()
 const mockByTask = vi.fn()
 const mockUpdateAgent = vi.fn()
-const mockEventsOn = vi.fn(() => vi.fn())
+const mockEventsOn = vi.fn((..._args: any[]) => vi.fn())
 
 vi.mock('../stores/tasks.svelte.js', () => ({
   taskStore: {
@@ -28,7 +28,7 @@ vi.mock('../stores/agents.svelte.js', () => ({
 }))
 
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
-  EventsOn: (...args: unknown[]) => mockEventsOn(...args),
+  EventsOn: (...args: any[]) => mockEventsOn(...args),
 }))
 
 vi.mock('@skeletonlabs/skeleton-svelte', () => ({

@@ -3,10 +3,10 @@ import { render, screen, cleanup } from '@testing-library/svelte'
 
 const mockGetOutput = vi.fn()
 const mockAppendEvent = vi.fn()
-const mockEventsOn = vi.fn(() => vi.fn())
+const mockEventsOn = vi.fn((..._args: any[]) => vi.fn())
 
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
-  EventsOn: (...args: unknown[]) => mockEventsOn(...args),
+  EventsOn: (...args: any[]) => mockEventsOn(...args),
 }))
 
 vi.mock('../stores/agents.svelte.js', () => ({
@@ -119,7 +119,7 @@ describe('StreamOutput', () => {
       expect(mockEventsOn).toHaveBeenCalled()
     })
 
-    const callback = mockEventsOn.mock.calls[0][1] as (event: unknown) => void
+    const callback = (mockEventsOn.mock.calls[0] as [string, (event: unknown) => void])[1]
     callback(makeEvent('result', 'Final output'))
 
     await vi.waitFor(() => {
