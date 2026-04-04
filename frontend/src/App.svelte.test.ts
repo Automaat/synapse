@@ -5,10 +5,10 @@ const mockLoad = vi.fn()
 const mockAgentLoad = vi.fn()
 const mockStartPolling = vi.fn()
 const mockStopPolling = vi.fn()
-const mockEventsOn = vi.fn(() => vi.fn())
+const mockEventsOn = vi.fn((..._args: any[]) => vi.fn())
 
 vi.mock('../wailsjs/runtime/runtime.js', () => ({
-  EventsOn: (...args: unknown[]) => mockEventsOn(...args),
+  EventsOn: (...args: any[]) => mockEventsOn(...args),
 }))
 
 vi.mock('./stores/tasks.svelte.js', () => ({

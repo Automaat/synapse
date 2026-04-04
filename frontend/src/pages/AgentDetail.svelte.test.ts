@@ -3,7 +3,7 @@ import { render, screen, cleanup } from '@testing-library/svelte'
 
 const mockStop = vi.fn()
 const mockUpdateAgent = vi.fn()
-const mockEventsOn = vi.fn(() => vi.fn())
+const mockEventsOn = vi.fn((..._args: any[]) => vi.fn())
 
 const mockAgents = new Map()
 
@@ -16,7 +16,7 @@ vi.mock('../stores/agents.svelte.js', () => ({
 }))
 
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
-  EventsOn: (...args: unknown[]) => mockEventsOn(...args),
+  EventsOn: (...args: any[]) => mockEventsOn(...args),
 }))
 
 vi.mock('../components/StreamOutput.svelte', () => ({ default: () => {} }))

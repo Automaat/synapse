@@ -56,6 +56,9 @@ jobs:
       - name: Install dependencies
         run: cd frontend && npm ci
 
+      - name: Type-check
+        run: cd frontend && npm run check
+
       - name: Run unit tests with coverage
         run: cd frontend && npx vitest run --coverage --passWithNoTests
 
