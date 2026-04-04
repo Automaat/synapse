@@ -43,6 +43,12 @@ func (m *Manager) SendKeys(name, keys string) error {
 	return run("send-keys", "-t", name, "Enter")
 }
 
+// SendRawKeys sends tmux key names (e.g. "Down", "Enter") directly via send-keys.
+func (m *Manager) SendRawKeys(name string, keys ...string) error {
+	args := append([]string{"send-keys", "-t", name}, keys...)
+	return run(args...)
+}
+
 func (m *Manager) CapturePaneOutput(name string) (string, error) {
 	return output("capture-pane", "-t", name, "-p")
 }

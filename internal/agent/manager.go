@@ -136,9 +136,9 @@ func (m *Manager) sendInteractivePrompt(ctx context.Context, a *Agent, prompt st
 			}
 			// Handle --dangerously-skip-permissions confirmation dialog
 			if !bypassAccepted && strings.Contains(out, "Yes, I accept") {
-				_ = m.tmux.SendKeys(a.TmuxSession, "Down")
+				_ = m.tmux.SendRawKeys(a.TmuxSession, "Down")
 				time.Sleep(200 * time.Millisecond)
-				_ = m.tmux.SendKeys(a.TmuxSession, "Enter")
+				_ = m.tmux.SendRawKeys(a.TmuxSession, "Enter")
 				m.logger.Info("agent.interactive.bypass_accepted", "id", a.ID)
 				bypassAccepted = true
 				continue
