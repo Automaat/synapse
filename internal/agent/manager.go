@@ -120,6 +120,7 @@ func (m *Manager) sendInteractivePrompt(ctx context.Context, a *Agent, prompt st
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
+	bypassAccepted := false
 	timeout := time.After(30 * time.Second)
 	for {
 		select {
@@ -133,7 +134,17 @@ func (m *Manager) sendInteractivePrompt(ctx context.Context, a *Agent, prompt st
 			if err != nil {
 				continue
 			}
-			if strings.Contains(out, "❯") {
+			// Handle --dangerously-skip-permissions confirmation dialog
+			if !bypassAccepted && strings.Contains(out, "Yes, I accept") {
+				_ = m.tmux.SendKeys(a.TmuxSession, "Down")
+				time.Sleep(200 * time.Millisecond)
+				_ = m.tmux.SendKeys(a.TmuxSession, "Enter")
+				m.logger.Info("agent.interactive.bypass_accepted", "id", a.ID)
+				bypassAccepted = true
+				continue
+			}
+			// Wait for the actual chat prompt (not the bypass dialog)
+			if strings.Contains(out, "❯") && !strings.Contains(out, "Yes, I accept") {
 				if err := m.tmux.SendKeys(a.TmuxSession, prompt); err != nil {
 					m.logger.Error("agent.interactive.sendkeys", "id", a.ID, "err", err)
 				} else {
