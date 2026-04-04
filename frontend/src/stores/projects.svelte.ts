@@ -1,70 +1,53 @@
-import { ListProjects, GetProject, CreateProject, UpdateProject, DeleteProject } from '../../wailsjs/go/main/App.js'
+import {
+  ListProjects,
+  GetProject,
+  CreateProject,
+  UpdateProject,
+  DeleteProject,
+} from '../../wailsjs/go/main/App.js'
 import { project } from '../../wailsjs/go/models.js'
+import { EntityStore } from './entity-store.svelte.js'
 
-class ProjectStore {
-  projects = $state<Map<string, project.Project>>(new Map())
-  loading = $state(false)
-  error = $state('')
-  private pollTimer: ReturnType<typeof setInterval> | null = null
-
-  get list(): project.Project[] {
-    return [...this.projects.values()].sort((a, b) => {
-      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
-      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
-      return tb - ta
-    })
+class ProjectStore extends EntityStore<project.Project> {
+  constructor() {
+    super(
+      () => ListProjects(),
+      (a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return tb - ta
+      },
+    )
   }
 
-  async load(): Promise<void> {
-    this.loading = true
-    this.error = ''
-    try {
-      const result = await ListProjects()
-      const map = new Map<string, project.Project>()
-      for (const p of result ?? []) {
-        map.set(p.id, p)
-      }
-      this.projects = map
-    } catch (e) {
-      this.error = String(e)
-    } finally {
-      this.loading = false
-    }
+  get projects() {
+    return this.items
+  }
+  set projects(v: Map<string, project.Project>) {
+    this.items = v
   }
 
   async get(id: string): Promise<project.Project> {
     const result = await GetProject(id)
-    this.projects.set(result.id, result)
+    this.items.set(result.id, result)
     return result
   }
 
   async create(url: string, type: string = 'pet'): Promise<project.Project> {
     const result = await CreateProject(url, type)
-    this.projects.set(result.id, result)
+    this.items.set(result.id, result)
     return result
   }
 
   async update(id: string, type: string): Promise<project.Project> {
     const result = await UpdateProject(id, type)
-    this.projects.set(result.id, result)
+    this.items.set(result.id, result)
     return result
   }
 
   async remove(id: string): Promise<void> {
     await DeleteProject(id)
-    this.projects.delete(id)
-  }
-
-  startPolling(): void {
-    this.stopPolling()
-    this.pollTimer = setInterval(() => this.load(), 5000)
-  }
-
-  stopPolling(): void {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer)
-      this.pollTimer = null
-    }
+    this.items.delete(id)
   }
 }
 

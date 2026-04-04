@@ -1,19 +1,35 @@
-import { StartAgent, StopAgent, ListAgents, GetAgentOutput, DiscoverAgents } from '../../wailsjs/go/main/App.js'
+import {
+  StartAgent,
+  StopAgent,
+  ListAgents,
+  GetAgentOutput,
+  DiscoverAgents,
+} from '../../wailsjs/go/main/App.js'
 import { agent } from '../../wailsjs/go/models.js'
+import { EntityStore } from './entity-store.svelte.js'
 
-class AgentStore {
-  agents = $state<Map<string, agent.Agent>>(new Map())
+class AgentStore extends EntityStore<agent.Agent> {
   outputs = $state<Map<string, agent.StreamEvent[]>>(new Map())
-  loading = $state(false)
-  error = $state('')
-  private pollTimer: ReturnType<typeof setInterval> | null = null
 
-  get list(): agent.Agent[] {
-    return [...this.agents.values()].sort((a, b) => {
-      const ta = a.startedAt ? new Date(a.startedAt).getTime() : 0
-      const tb = b.startedAt ? new Date(b.startedAt).getTime() : 0
-      return tb - ta
-    })
+  constructor() {
+    super(
+      async () => {
+        await DiscoverAgents()
+        return ListAgents()
+      },
+      (a, b) => {
+        const ta = a.startedAt ? new Date(a.startedAt).getTime() : 0
+        const tb = b.startedAt ? new Date(b.startedAt).getTime() : 0
+        return tb - ta
+      },
+    )
+  }
+
+  get agents() {
+    return this.items
+  }
+  set agents(v: Map<string, agent.Agent>) {
+    this.items = v
   }
 
   byTask(taskID: string): agent.Agent | undefined {
@@ -25,37 +41,19 @@ class AgentStore {
     return this.list.filter((a) => a.state === state)
   }
 
-  async load(): Promise<void> {
-    this.loading = true
-    this.error = ''
-    try {
-      await DiscoverAgents()
-      const result = await ListAgents()
-      const map = new Map<string, agent.Agent>()
-      for (const a of result ?? []) {
-        map.set(a.id, a)
-      }
-      this.agents = map
-    } catch (e) {
-      this.error = String(e)
-    } finally {
-      this.loading = false
-    }
-  }
-
   async start(taskID: string, mode: string, prompt: string): Promise<agent.Agent> {
     const result = await StartAgent(taskID, mode, prompt)
-    this.agents.set(result.id, result)
+    this.items.set(result.id, result)
     this.outputs.set(result.id, [])
     return result
   }
 
   async stop(agentID: string): Promise<void> {
     await StopAgent(agentID)
-    const a = this.agents.get(agentID)
+    const a = this.items.get(agentID)
     if (a) {
       a.state = 'stopped'
-      this.agents.set(agentID, a)
+      this.items.set(agentID, a)
     }
   }
 
@@ -71,19 +69,7 @@ class AgentStore {
   }
 
   updateAgent(agentID: string, data: agent.Agent): void {
-    this.agents.set(agentID, data)
-  }
-
-  startPolling(): void {
-    this.stopPolling()
-    this.pollTimer = setInterval(() => this.load(), 5000)
-  }
-
-  stopPolling(): void {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer)
-      this.pollTimer = null
-    }
+    this.items.set(agentID, data)
   }
 }
 

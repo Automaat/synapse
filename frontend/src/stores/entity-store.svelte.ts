@@ -1,0 +1,42 @@
+export class EntityStore<T extends { id: string }> {
+  items = $state<Map<string, T>>(new Map())
+  loading = $state(false)
+  error = $state('')
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+
+  constructor(
+    private readonly loadFn: () => Promise<T[]>,
+    private readonly sortFn: (a: T, b: T) => number,
+  ) {}
+
+  get list(): T[] {
+    return [...this.items.values()].sort(this.sortFn)
+  }
+
+  async load(): Promise<void> {
+    this.loading = true
+    this.error = ''
+    try {
+      const result = await this.loadFn()
+      const map = new Map<string, T>()
+      for (const item of result ?? []) map.set(item.id, item)
+      this.items = map
+    } catch (e) {
+      this.error = String(e)
+    } finally {
+      this.loading = false
+    }
+  }
+
+  startPolling(interval = 5000): void {
+    this.stopPolling()
+    this.pollTimer = setInterval(() => this.load(), interval)
+  }
+
+  stopPolling(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  }
+}
