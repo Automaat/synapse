@@ -226,6 +226,11 @@ func (a *App) GetAgentOutput(agentID string) ([]agent.StreamEvent, error) {
 }
 
 func (a *App) handleAgentComplete(ag *agent.Agent) {
+	if ag.TaskID == "" {
+		a.logger.Warn("agent.complete.skip", "agent_id", ag.ID, "reason", "empty task_id")
+		return
+	}
+
 	var resultContent string
 	for _, ev := range ag.Output() {
 		if ev.Type == "result" {
