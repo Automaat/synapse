@@ -111,6 +111,10 @@ func (a *App) prepareWorktree(t task.Task) (string, error) {
 
 	a.logger.Info("worktree.created", "task_id", t.ID, "path", wtPath)
 
+	if err := project.PushUpstream(wtPath, wtBranch); err != nil {
+		a.logger.Warn("worktree.push-upstream", "task_id", t.ID, "branch", wtBranch, "err", err)
+	}
+
 	if t.Branch == "" {
 		if _, err := a.tasks.Update(t.ID, map[string]any{"branch": wtBranch}); err != nil {
 			a.logger.Error("worktree.set-branch", "task_id", t.ID, "err", err)
