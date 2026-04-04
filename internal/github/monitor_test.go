@@ -101,6 +101,7 @@ func TestMatchTaskPRs(t *testing.T) {
 }
 
 func TestDetectClosedTaskPRs(t *testing.T) {
+	t.Parallel()
 	merged := PRState{State: "MERGED", MergedAt: "2026-04-01T12:00:00Z"}
 	closed := PRState{State: "CLOSED"}
 	open := PRState{State: "OPEN"}
@@ -184,6 +185,7 @@ func TestDetectClosedTaskPRs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := DetectClosedTaskPRs(tt.openPRs, tt.tasks, makeFetch(tt.states))
 			if len(got) != len(tt.want) {
 				t.Fatalf("got %d results, want %d: %+v", len(got), len(tt.want), got)

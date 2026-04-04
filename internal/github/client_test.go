@@ -531,6 +531,7 @@ func TestFetchReviewsWith_firstCallFails(t *testing.T) {
 }
 
 func TestFetchPRStateWith(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		output  string
@@ -568,6 +569,7 @@ func TestFetchPRStateWith(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fe := &fakeExecer{output: []byte(tt.output), err: tt.execErr}
 			got, err := fetchPRStateWith(fe, "o/r", 42)
 			if (err != nil) != tt.wantErr {
