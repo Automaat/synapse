@@ -20,6 +20,8 @@ The ONLY valid flags for `synapse-cli update` are: `--title`, `--status`, `--bod
 - Keep total cost under $0.05 per task
 - Code exploration happens during planning/implementation, not triage
 - Ignore agent runs with a `role` field (triage, plan, eval, pr-fix) — those are system agents, not implementation agents
+- Always shorten titles >80 chars — keep them actionable/descriptive, not just truncated
+- When shortening, move the verbose original title into the task body (prepend, preserve existing content)
 
 ## Process
 
@@ -60,7 +62,25 @@ Files: N changed (+A/-D)
 <description excerpt, max ~500 chars>"
 ```
 
-### 3. Add brief description if missing
+### 3. Shorten title if too long
+
+If the title exceeds 80 characters, rewrite it as a concise ≤80 char summary. Move the original verbose title into the task body so no context is lost.
+
+Read the current body first (already done in step 2), then update with both `--title` and `--body` in a single call:
+
+```bash
+synapse-cli --json update <id> \
+  --title "<concise summary ≤80 chars>" \
+  --body "**Original title:** <original verbose title>
+
+<existing body content preserved here>"
+```
+
+- Keep the rewritten title actionable and descriptive — summarize intent, don't just truncate
+- If the task already has body content, prepend the original title line above it
+- Skip if title is already ≤80 chars
+
+### 4. Add brief description if missing
 
 If the task body is empty or has no meaningful context beyond a URL, add a 2-3 sentence description based on what you know from the title, URL context (if fetched), and general understanding. Do NOT explore the codebase or read source files — just clarify what the task is about and what "done" looks like.
 
@@ -73,7 +93,7 @@ Original context preserved here if any."
 
 Skip if the task already has a clear, descriptive body.
 
-### 4. Assign tags based on analysis
+### 5. Assign tags based on analysis
 
 Common tag categories:
 - **Domain**: `backend`, `frontend`, `infra`, `docs`, `ci`
@@ -84,7 +104,7 @@ Common tag categories:
 synapse-cli --json update <id> --tags "backend,small,review"
 ```
 
-### 5. Set agent mode
+### 6. Set agent mode
 
 - `headless` — automated tasks: code reviews, simple fixes, test writing
 - `interactive` — tasks needing human guidance: architecture decisions, complex debugging
@@ -93,7 +113,7 @@ synapse-cli --json update <id> --tags "backend,small,review"
 synapse-cli --json update <id> --mode headless
 ```
 
-### 6. Assign project (if applicable)
+### 7. Assign project (if applicable)
 
 Check if the task references a known project (GitHub repo). List available projects:
 
@@ -107,7 +127,7 @@ If the task body/URL matches a registered project, assign it:
 synapse-cli --json update <id> --project "owner/repo"
 ```
 
-### 7. Decide: planning or direct implementation
+### 8. Decide: planning or direct implementation
 
 Complex tasks go to `planning` status (triggers auto-planning agent). Simple tasks go to `todo`.
 
@@ -126,7 +146,7 @@ synapse-cli --json update <id> --status todo
 | Size `small`, type `bug`/`refactor`/`review`/`chore` | todo |
 | PR review | todo |
 
-Step 7 already sets the status — no further status update needed. Skip if a previous step already changed the status.
+Step 8 already sets the status — no further status update needed. Skip if a previous step already changed the status.
 
 ## Decision Criteria
 
