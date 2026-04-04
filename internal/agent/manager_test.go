@@ -149,6 +149,69 @@ func TestStopAgent(t *testing.T) {
 	}
 }
 
+// TestStopHeadlessDoesNotCallOnComplete verifies that StopAgent for a headless
+// agent does not call onComplete immediately — only the goroutine may call it
+// after the process exits, preventing premature worktree cleanup.
+func TestStopHeadlessDoesNotCallOnComplete(t *testing.T) {
+	m, _ := newTestManager(t)
+
+	completeCalls := 0
+	m.SetOnComplete(func(_ *Agent) { completeCalls++ })
+
+	a, err := m.StartAgent("task-1", "Test Task", "headless", "test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.StopAgent(a.ID); err != nil {
+		t.Fatalf("StopAgent: %v", err)
+	}
+
+	// StopAgent must not call onComplete for headless — the goroutine does.
+	if completeCalls > 0 {
+		t.Errorf("onComplete called %d time(s) by StopAgent, want 0", completeCalls)
+	}
+}
+
+// TestHasRunningAgentUsesGoroutineLifetime verifies HasRunningAgentForTask
+// returns true while the goroutine is alive regardless of State, and false
+// only after the goroutine closes done.
+func TestHasRunningAgentUsesGoroutineLifetime(t *testing.T) {
+	m, _ := newTestManager(t)
+
+	// Manually wire a headless agent with a done channel we control.
+	done := make(chan struct{})
+	a := &Agent{
+		ID:     "test-race",
+		TaskID: "task-1",
+		Mode:   "headless",
+		State:  StateRunning,
+		cancel: func() {},
+		done:   done,
+	}
+	m.mu.Lock()
+	m.agents[a.ID] = a
+	m.mu.Unlock()
+
+	if !m.HasRunningAgentForTask("task-1") {
+		t.Fatal("expected HasRunningAgentForTask=true before goroutine exits")
+	}
+
+	// Simulate StopAgent setting state without goroutine exiting yet.
+	a.State = StateStopped
+
+	if !m.HasRunningAgentForTask("task-1") {
+		t.Fatal("expected HasRunningAgentForTask=true: goroutine still alive even though state=Stopped")
+	}
+
+	// Simulate goroutine exit.
+	close(done)
+
+	if m.HasRunningAgentForTask("task-1") {
+		t.Fatal("expected HasRunningAgentForTask=false after goroutine exits")
+	}
+}
+
 func TestStopAgentNotFound(t *testing.T) {
 	m, _ := newTestManager(t)
 	err := m.StopAgent("nonexistent")
@@ -402,6 +465,34 @@ func TestCapturePaneAfterStop(t *testing.T) {
 	}
 	if out != "" {
 		t.Errorf("expected empty output after stop, got: %q", out)
+	}
+}
+
+func TestHasRunningAgentForTask(t *testing.T) {
+	m, _ := newTestManager(t)
+
+	// No agents — always false.
+	if m.HasRunningAgentForTask("task-1") {
+		t.Error("expected false with no agents")
+	}
+
+	// Manually register a running agent for task-1.
+	running := &Agent{ID: "a1", TaskID: "task-1", State: StateRunning, cancel: func() {}}
+	m.mu.Lock()
+	m.agents["a1"] = running
+	m.mu.Unlock()
+
+	if !m.HasRunningAgentForTask("task-1") {
+		t.Error("expected true for running agent on task-1")
+	}
+	if m.HasRunningAgentForTask("task-2") {
+		t.Error("expected false for different task")
+	}
+
+	// Stopped agent — should return false.
+	running.State = StateStopped
+	if m.HasRunningAgentForTask("task-1") {
+		t.Error("expected false for stopped agent")
 	}
 }
 

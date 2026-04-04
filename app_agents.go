@@ -121,6 +121,10 @@ func (a *App) prepareWorktree(t task.Task) (string, error) {
 }
 
 func (a *App) cleanupWorktree(taskID string) {
+	if a.agents.HasRunningAgentForTask(taskID) {
+		a.logger.Info("worktree.cleanup.deferred", "task_id", taskID, "reason", "agent_running")
+		return
+	}
 	t, err := a.tasks.Get(taskID)
 	if err != nil || t.ProjectID == "" {
 		return
@@ -293,6 +297,12 @@ func (a *App) handleAgentComplete(ag *agent.Agent) {
 		eventType = audit.EventAgentFailed
 	}
 	a.logAudit(eventType, ag.TaskID, ag.ID, agentData)
+
+	// Cleanup worktree if task was already marked done while agent was running.
+	if t, err := a.tasks.Get(ag.TaskID); err == nil && t.Status == task.StatusDone {
+		go a.cleanupWorktree(ag.TaskID)
+		return
+	}
 
 	a.wg.Go(func() {
 		if err := a.EvaluateTask(ag.TaskID, resultContent); err != nil {
