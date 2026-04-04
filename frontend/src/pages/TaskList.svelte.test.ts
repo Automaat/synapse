@@ -12,6 +12,12 @@ vi.mock('../stores/tasks.svelte.js', () => ({
   },
 }))
 
+vi.mock('../stores/projects.svelte.js', () => ({
+  projectStore: {
+    list: [],
+  },
+}))
+
 const { taskStore } = await import('../stores/tasks.svelte.js')
 const TaskList = (await import('./TaskList.svelte')).default
 
@@ -50,7 +56,7 @@ describe('TaskList', () => {
     expect(screen.getByText('Failed to load')).toBeDefined()
   })
 
-  it('renders all status columns', () => {
+  it('renders visible status columns (Done hidden by default)', () => {
     mockByStatus.mockReturnValue([])
     render(TaskList, { props: { onselect: vi.fn() } })
     expect(screen.getByText('Todo')).toBeDefined()
@@ -58,13 +64,12 @@ describe('TaskList', () => {
     expect(screen.getByText('In Progress')).toBeDefined()
     expect(screen.getByText('In Review')).toBeDefined()
     expect(screen.getByText('Human Required')).toBeDefined()
-    expect(screen.getByText('Done')).toBeDefined()
+    expect(screen.queryByText(/^Done$/)).toBeNull()
   })
 
-  it('calls byStatus for each column status', () => {
+  it('calls byStatus for visible columns', () => {
     mockByStatus.mockReturnValue([])
     render(TaskList, { props: { onselect: vi.fn() } })
-    // todo column includes new + todo, planning column includes planning + plan-review
     expect(mockByStatus).toHaveBeenCalledWith('new')
     expect(mockByStatus).toHaveBeenCalledWith('todo')
     expect(mockByStatus).toHaveBeenCalledWith('planning')
@@ -72,7 +77,7 @@ describe('TaskList', () => {
     expect(mockByStatus).toHaveBeenCalledWith('in-progress')
     expect(mockByStatus).toHaveBeenCalledWith('in-review')
     expect(mockByStatus).toHaveBeenCalledWith('human-required')
-    expect(mockByStatus).toHaveBeenCalledWith('done')
+    expect(mockByStatus).not.toHaveBeenCalledWith('done')
   })
 
   it('renders task cards in columns', () => {
