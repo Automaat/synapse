@@ -116,8 +116,11 @@ func (s *Store) Update(id string, updates map[string]any) (Task, error) {
 	if v, ok := updates["body"].(string); ok {
 		t.Body = v
 	}
-	if v, ok := updates["tags"].([]string); ok {
+	switch v := updates["tags"].(type) {
+	case []string:
 		t.Tags = v
+	case string:
+		t.Tags = strings.Split(v, ",")
 	}
 	if v, ok := updates["project_id"].(string); ok {
 		t.ProjectID = v
@@ -125,8 +128,11 @@ func (s *Store) Update(id string, updates map[string]any) (Task, error) {
 	if v, ok := updates["branch"].(string); ok {
 		t.Branch = v
 	}
-	if v, ok := updates["pr_number"].(float64); ok {
+	switch v := updates["pr_number"].(type) {
+	case float64:
 		t.PRNumber = int(v)
+	case int:
+		t.PRNumber = v
 	}
 
 	data, err := Marshal(t)
