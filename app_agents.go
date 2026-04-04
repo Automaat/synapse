@@ -139,7 +139,7 @@ func (o *AgentOrchestrator) prepareWorktree(t task.Task) (string, error) {
 	wtBranch := "synapse/" + t.DirName()
 	if _, statErr := os.Stat(wtPath); statErr == nil {
 		if err := project.SanitizeWorktree(wtPath); err != nil {
-			a.logger.Warn("worktree.sanitize", "task_id", t.ID, "err", err)
+			o.logger.Warn("worktree.sanitize", "task_id", t.ID, "err", err)
 		}
 		if t.Branch == "" {
 			if _, err := o.tasks.Update(t.ID, map[string]any{"branch": wtBranch}); err != nil {
