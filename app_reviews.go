@@ -155,7 +155,6 @@ func (r *ReviewHandler) startReviewAgent(t task.Task) error {
 		}
 	}
 
-
 	prompt := fmt.Sprintf("Run /staff-code-review on https://github.com/%s/pull/%d", t.ProjectID, t.PRNumber)
 
 	ag, err := r.agents.Run(agent.RunConfig{

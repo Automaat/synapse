@@ -279,7 +279,6 @@ func (a *App) StartAgent(taskID, mode, prompt string) (*agent.Agent, error) {
 	return a.agentOrch.StartAgent(taskID, mode, prompt)
 }
 
-
 func (a *App) syncSkills() {
 	repoDir := a.repoDir
 	if repoDir == "" {
