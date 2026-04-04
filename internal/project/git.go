@@ -82,6 +82,17 @@ func CreateWorktree(barePath, worktreePath, branch, baseBranch string) error {
 	return nil
 }
 
+// CreateWorktreeDetached creates a worktree in detached HEAD mode from a remote ref.
+// Used for read-only checkouts like code reviews.
+func CreateWorktreeDetached(barePath, worktreePath, ref string) error {
+	cmd := exec.Command("git", "worktree", "add", "--detach", worktreePath, ref)
+	cmd.Dir = barePath
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git worktree add --detach: %w: %s", err, string(out))
+	}
+	return nil
+}
+
 func ListWorktrees(barePath string) ([]Worktree, error) {
 	cmd := exec.Command("git", "worktree", "list", "--porcelain")
 	cmd.Dir = barePath

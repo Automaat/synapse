@@ -314,3 +314,26 @@ func fetchPRStateWith(e execer, repo string, number int) (PRState, error) {
 	}
 	return s, nil
 }
+
+// PRBranch holds the head branch name of a PR.
+type PRBranch struct {
+	HeadRefName string `json:"headRefName"`
+}
+
+// FetchPRBranch returns the head branch name for a PR.
+func FetchPRBranch(repo string, number int) (string, error) {
+	return fetchPRBranchWith(defaultExecer, repo, number)
+}
+
+func fetchPRBranchWith(e execer, repo string, number int) (string, error) {
+	out, err := e.run("pr", "view", fmt.Sprintf("%d", number),
+		"--repo", repo, "--json", "headRefName")
+	if err != nil {
+		return "", fmt.Errorf("gh pr view %d branch: %s: %w", number, strings.TrimSpace(string(out)), err)
+	}
+	var b PRBranch
+	if err := json.Unmarshal(out, &b); err != nil {
+		return "", fmt.Errorf("parse pr branch: %w", err)
+	}
+	return b.HeadRefName, nil
+}

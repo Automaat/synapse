@@ -340,12 +340,8 @@ func (a *App) completeEvalAgent(ag *agent.Agent, agentData map[string]any) {
 		return
 	}
 	if t.Status == task.StatusDone {
-		a.logger.Warn("eval.reverted_done", "agent_id", ag.ID, "task_id", ag.TaskID)
-		if _, uerr := a.tasks.Update(ag.TaskID, map[string]any{
-			"status": string(task.StatusInReview),
-		}); uerr != nil {
-			a.logger.Error("eval.revert_status", "task_id", ag.TaskID, "err", uerr)
-		}
+		a.logger.Info("eval.skip_done", "agent_id", ag.ID, "task_id", ag.TaskID)
+		return
 	}
 }
 
