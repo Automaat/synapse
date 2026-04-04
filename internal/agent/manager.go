@@ -253,23 +253,39 @@ func (m *Manager) markStopped(a *Agent) {
 	}
 }
 
-// CheckInteractiveSessions detects dead tmux sessions for interactive agents
-// and marks them as stopped. Called periodically from the app layer.
+// CheckInteractiveSessions detects dead or idle tmux sessions for interactive
+// agents and marks them as stopped. Called periodically from the app layer.
 func (m *Manager) CheckInteractiveSessions() {
 	m.mu.RLock()
-	var stale []*Agent
+	var candidates []*Agent
 	for _, a := range m.agents {
 		if a.Mode == "interactive" && a.State == StateRunning && a.TmuxSession != "" {
-			if !m.tmux.SessionExists(a.TmuxSession) {
-				stale = append(stale, a)
-			}
+			candidates = append(candidates, a)
 		}
 	}
 	m.mu.RUnlock()
 
-	for _, a := range stale {
-		m.logger.Warn("agent.tmux.gone", "id", a.ID, "session", a.TmuxSession)
-		m.markStopped(a)
+	for _, a := range candidates {
+		if !m.tmux.SessionExists(a.TmuxSession) {
+			m.logger.Warn("agent.tmux.gone", "id", a.ID, "session", a.TmuxSession)
+			m.markStopped(a)
+			continue
+		}
+		out, err := m.tmux.CapturePaneOutput(a.TmuxSession)
+		if err != nil {
+			continue
+		}
+		// Detect idle: pane has the ❯ input prompt and shows activity markers
+		// (tool use ⏺, cost ✻) meaning agent worked then returned to prompt.
+		hasPrompt := strings.Contains(out, "\u276f") && !strings.Contains(out, "Yes, I accept")
+		hasActivity := strings.Contains(out, "\u23fa") || strings.Contains(out, "\u273b")
+		if !a.tmuxActive && hasActivity {
+			a.tmuxActive = true
+		}
+		if a.tmuxActive && hasPrompt && hasActivity {
+			m.logger.Info("agent.interactive.idle", "id", a.ID, "session", a.TmuxSession)
+			m.markStopped(a)
+		}
 	}
 }
 
