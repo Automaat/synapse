@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -102,6 +104,16 @@ func (a *App) StartReview(taskID string) error {
 }
 
 func (a *App) startReviewAgent(t task.Task) error {
+	dir := config.HomeDir()
+	if t.ProjectID != "" {
+		d, err := a.prepareReviewWorktree(t)
+		if err != nil {
+			a.logger.Error("review.worktree", "task_id", t.ID, "err", err)
+		} else {
+			dir = d
+		}
+	}
+
 	prompt := fmt.Sprintf("Run /staff-code-review on https://github.com/%s/pull/%d", t.ProjectID, t.PRNumber)
 
 	ag, err := a.agents.Run(agent.RunConfig{
@@ -109,7 +121,7 @@ func (a *App) startReviewAgent(t task.Task) error {
 		Name:   "review:" + t.Title,
 		Mode:   "headless",
 		Prompt: prompt,
-		Dir:    config.HomeDir(),
+		Dir:    dir,
 		Model:  "opus",
 	})
 	if err != nil {
@@ -123,6 +135,35 @@ func (a *App) startReviewAgent(t task.Task) error {
 	a.logAudit(audit.EventReviewStarted, t.ID, ag.ID, map[string]any{"pr": t.PRNumber})
 	a.logger.Info("review.agent-started", "task_id", t.ID, "agent_id", ag.ID, "pr", t.PRNumber)
 	return nil
+}
+
+func (a *App) prepareReviewWorktree(t task.Task) (string, error) {
+	proj, err := a.projects.Get(t.ProjectID)
+	if err != nil {
+		return "", fmt.Errorf("get project: %w", err)
+	}
+
+	if err := project.FetchOrigin(proj.ClonePath); err != nil {
+		a.logger.Warn("review.worktree.fetch", "project", proj.ID, "err", err)
+	}
+
+	branch, err := github.FetchPRBranch(t.ProjectID, t.PRNumber)
+	if err != nil {
+		return "", fmt.Errorf("fetch pr branch: %w", err)
+	}
+
+	wtPath := filepath.Join(a.worktreesDir, t.DirName())
+	if _, statErr := os.Stat(wtPath); statErr == nil {
+		return wtPath, nil
+	}
+
+	ref := "refs/remotes/origin/" + branch
+	if err := project.CreateWorktreeDetached(proj.ClonePath, wtPath, ref); err != nil {
+		return "", fmt.Errorf("create review worktree: %w", err)
+	}
+
+	a.logger.Info("review.worktree.created", "task_id", t.ID, "path", wtPath, "branch", branch)
+	return wtPath, nil
 }
 
 func (a *App) resolveReviewStatus(taskID string) {
