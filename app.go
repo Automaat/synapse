@@ -95,9 +95,8 @@ func (a *App) startup(ctx context.Context) {
 	a.cleanStaleRuns()
 	a.syncSkills()
 	a.RegisterSpotlightHotkey()
-	a.wg.Add(2)
-	go func() { defer a.wg.Done(); a.orchestratorLoop(ctx) }()
-	go func() { defer a.wg.Done(); a.prPollLoop(ctx) }()
+	a.wg.Go(func() { a.orchestratorLoop(ctx) })
+	a.wg.Go(func() { a.prPollLoop(ctx) })
 	a.logger.Info("app.started")
 }
 
@@ -189,13 +188,11 @@ func (a *App) CreateTask(title, body, mode string) (task.Task, error) {
 	a.logAudit(audit.EventTaskCreated, t.ID, "", map[string]any{"title": title, "mode": mode})
 	if t.Status == task.StatusTodo {
 		a.logger.Info("auto-triage.start", "task_id", t.ID, "title", t.Title)
-		a.wg.Add(1)
-		go func() {
-			defer a.wg.Done()
+		a.wg.Go(func() {
 			if triageErr := a.TriageTask(t.ID); triageErr != nil {
 				a.logger.Error("auto-triage.failed", "task_id", t.ID, "err", triageErr)
 			}
-		}()
+		})
 	}
 	return t, nil
 }
@@ -838,13 +835,11 @@ func (a *App) handleAgentComplete(ag *agent.Agent) {
 	}
 	a.logAudit(eventType, ag.TaskID, ag.ID, agentData)
 
-	a.wg.Add(1)
-	go func() {
-		defer a.wg.Done()
+	a.wg.Go(func() {
 		if err := a.EvaluateTask(ag.TaskID, resultContent); err != nil {
 			a.logger.Error("auto-evaluate.failed", "task_id", ag.TaskID, "agent_id", ag.ID, "err", err)
 		}
-	}()
+	})
 }
 
 func (a *App) EvaluateTask(taskID, agentResult string) error {
