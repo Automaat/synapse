@@ -3,26 +3,25 @@ package main
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/Automaat/synapse/internal/agent"
 	"github.com/Automaat/synapse/internal/audit"
 	"github.com/Automaat/synapse/internal/project"
 	"github.com/Automaat/synapse/internal/task"
 	"github.com/Automaat/synapse/internal/tmux"
+	"github.com/Automaat/synapse/internal/worktree"
 )
 
 // AgentOrchestrator manages agent lifecycle: worktree setup, project
 // assignment, and agent launching for a task.
 type AgentOrchestrator struct {
-	tasks        *task.Store
-	projects     *project.Store
-	agents       *agent.Manager
-	audit        *audit.Logger
-	logger       *slog.Logger
-	worktreesDir string
+	tasks     *task.Store
+	projects  *project.Store
+	agents    *agent.Manager
+	audit     *audit.Logger
+	logger    *slog.Logger
+	worktrees *worktree.Manager
 }
 
 func newAgentOrchestrator(
@@ -31,15 +30,15 @@ func newAgentOrchestrator(
 	agents *agent.Manager,
 	al *audit.Logger,
 	logger *slog.Logger,
-	worktreesDir string,
+	worktrees *worktree.Manager,
 ) *AgentOrchestrator {
 	return &AgentOrchestrator{
-		tasks:        tasks,
-		projects:     projects,
-		agents:       agents,
-		audit:        al,
-		logger:       logger,
-		worktreesDir: worktreesDir,
+		tasks:     tasks,
+		projects:  projects,
+		agents:    agents,
+		audit:     al,
+		logger:    logger,
+		worktrees: worktrees,
 	}
 }
 
@@ -72,7 +71,7 @@ func (o *AgentOrchestrator) StartAgent(taskID, mode, prompt string) (*agent.Agen
 
 	dir := ""
 	if t.ProjectID != "" {
-		d, wtErr := o.prepareWorktree(t)
+		d, wtErr := o.worktrees.PrepareForTask(t)
 		if wtErr != nil {
 			return nil, fmt.Errorf("worktree required for project task: %w", wtErr)
 		}
@@ -121,115 +120,6 @@ func (o *AgentOrchestrator) autoAssignProject(t task.Task) task.Task {
 	return t
 }
 
-func (o *AgentOrchestrator) prepareWorktree(t task.Task) (string, error) {
-	proj, err := o.projects.Get(t.ProjectID)
-	if err != nil {
-		return "", fmt.Errorf("get project: %w", err)
-	}
-	if err := project.FetchOrigin(proj.ClonePath); err != nil {
-		o.logger.Warn("worktree.fetch", "project", proj.ID, "err", err)
-	}
-
-	branch, err := project.DefaultBranch(proj.ClonePath)
-	if err != nil {
-		return "", fmt.Errorf("default branch: %w", err)
-	}
-
-	wtPath := filepath.Join(o.worktreesDir, t.DirName())
-	wtBranch := "synapse/" + t.DirName()
-	if _, statErr := os.Stat(wtPath); statErr == nil {
-		if err := project.SanitizeWorktree(wtPath); err != nil {
-			o.logger.Warn("worktree.sanitize", "task_id", t.ID, "err", err)
-		}
-		if t.Branch == "" {
-			if _, err := o.tasks.Update(t.ID, map[string]any{"branch": wtBranch}); err != nil {
-				o.logger.Error("worktree.set-branch", "task_id", t.ID, "err", err)
-			}
-		}
-		return wtPath, nil
-	}
-	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, "origin/"+branch); err != nil {
-		return "", fmt.Errorf("create worktree: %w", err)
-	}
-
-	o.logger.Info("worktree.created", "task_id", t.ID, "path", wtPath)
-
-	if err := project.PushUpstream(wtPath, wtBranch); err != nil {
-		o.logger.Warn("worktree.push-upstream", "task_id", t.ID, "branch", wtBranch, "err", err)
-	}
-
-	if t.Branch == "" {
-		if _, err := o.tasks.Update(t.ID, map[string]any{"branch": wtBranch}); err != nil {
-			o.logger.Error("worktree.set-branch", "task_id", t.ID, "err", err)
-		}
-	}
-
-	return wtPath, nil
-}
-
-func (o *AgentOrchestrator) cleanupWorktree(taskID string) {
-	t, err := o.tasks.Get(taskID)
-	if err != nil || t.ProjectID == "" {
-		return
-	}
-	wtPath := filepath.Join(o.worktreesDir, t.DirName())
-	if _, err := os.Stat(wtPath); err != nil {
-		return
-	}
-	proj, err := o.projects.Get(t.ProjectID)
-	if err != nil {
-		return
-	}
-
-	if err := project.RemoveWorktree(proj.ClonePath, wtPath); err != nil {
-		o.logger.Error("worktree.cleanup", "path", wtPath, "err", err)
-	} else {
-		o.logger.Info("worktree.cleaned", "path", wtPath)
-	}
-}
-
-// cleanupOrphanedWorktrees scans the worktrees directory and removes entries
-// that no longer have an active task or running agent.
-func (a *App) cleanupOrphanedWorktrees() {
-	entries, err := os.ReadDir(a.worktreesDir)
-	if err != nil {
-		return
-	}
-	tasks, err := a.tasks.List()
-	if err != nil {
-		return
-	}
-	// Build lookup: dirName → task
-	active := make(map[string]*task.Task, len(tasks))
-	for i := range tasks {
-		active[tasks[i].DirName()] = &tasks[i]
-	}
-
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		name := e.Name()
-		wtPath := filepath.Join(a.worktreesDir, name)
-
-		t, exists := active[name]
-		switch {
-		case !exists:
-			// Task deleted — remove worktree directory.
-		case t.Status != task.StatusDone:
-			continue
-		case a.agents.HasRunningAgentForTask(t.ID):
-			continue
-		}
-
-		if err := os.RemoveAll(wtPath); err != nil {
-			a.logger.Error("worktree.orphan-cleanup", "path", wtPath, "err", err)
-		} else {
-			a.logger.Info("worktree.orphan-cleaned", "path", wtPath)
-		}
-	}
-}
-
 // startPRFixReviewAgent starts a headless agent to address review comments on
 // the task's PR. Named "pr-fix:" so handleAgentComplete routes it correctly.
 func (a *App) startPRFixReviewAgent(taskID string) error {
@@ -241,7 +131,7 @@ func (a *App) startPRFixReviewAgent(taskID string) error {
 	t = a.agentOrch.autoAssignProject(t)
 	dir := ""
 	if t.ProjectID != "" {
-		d, wtErr := a.agentOrch.prepareWorktree(t)
+		d, wtErr := a.worktrees.PrepareForTask(t)
 		if wtErr != nil {
 			return fmt.Errorf("worktree required: %w", wtErr)
 		}

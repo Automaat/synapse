@@ -12,6 +12,7 @@ import (
 	"github.com/Automaat/synapse/internal/notification"
 	"github.com/Automaat/synapse/internal/task"
 	"github.com/Automaat/synapse/internal/tmux"
+	"github.com/Automaat/synapse/internal/worktree"
 )
 
 func discardLogger() *slog.Logger {
@@ -40,7 +41,13 @@ func setupApp(t *testing.T) *App {
 	mgr := agent.NewManager(t.Context(), tm, emit, logger, logDir)
 
 	notifier := notification.New(emit)
-	agentOrch := newAgentOrchestrator(store, nil, mgr, nil, logger, "")
+	wm := worktree.New(worktree.Config{
+		WorktreesDir: t.TempDir(),
+		Tasks:        store,
+		Logger:       logger,
+		AgentChecker: mgr.HasRunningAgentForTask,
+	})
+	agentOrch := newAgentOrchestrator(store, nil, mgr, nil, logger, wm)
 	workflow := newTaskWorkflow(store, mgr, nil, logger, notifier, agentOrch)
 
 	return &App{
@@ -48,6 +55,7 @@ func setupApp(t *testing.T) *App {
 		agents:    mgr,
 		tasksDir:  dir,
 		logger:    logger,
+		worktrees: wm,
 		agentOrch: agentOrch,
 		workflow:  workflow,
 	}

@@ -80,7 +80,7 @@ func (a *App) UpdateTask(id string, updates map[string]any) (task.Task, error) {
 		}
 	}
 	if t.Status == task.StatusDone {
-		a.wg.Go(func() { a.agentOrch.cleanupWorktree(t.ID) })
+		a.wg.Go(func() { a.worktrees.Remove(t.ID) })
 	}
 	return t, nil
 }
@@ -88,7 +88,7 @@ func (a *App) UpdateTask(id string, updates map[string]any) (task.Task, error) {
 // DeleteTask removes a task file from disk and cleans up its worktree.
 func (a *App) DeleteTask(id string) error {
 	a.logger.Info("task.delete", "task_id", id)
-	a.agentOrch.cleanupWorktree(id)
+	a.worktrees.Remove(id)
 	a.logAudit(audit.EventTaskDeleted, id, "", nil)
 	if err := a.tasks.Delete(id); err != nil {
 		a.logger.Error("task.delete.failed", "task_id", id, "err", err)

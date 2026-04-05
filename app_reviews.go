@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"slices"
 	"time"
 
@@ -14,6 +12,7 @@ import (
 	"github.com/Automaat/synapse/internal/github"
 	"github.com/Automaat/synapse/internal/project"
 	"github.com/Automaat/synapse/internal/task"
+	"github.com/Automaat/synapse/internal/worktree"
 )
 
 const (
@@ -35,7 +34,7 @@ type ReviewHandler struct {
 	logger    *slog.Logger
 	prTracker *github.IssueTracker
 	emit      func(string, any)
-	agentOrch *AgentOrchestrator
+	worktrees *worktree.Manager
 }
 
 func newReviewHandler(
@@ -46,7 +45,7 @@ func newReviewHandler(
 	logger *slog.Logger,
 	prTracker *github.IssueTracker,
 	emit func(string, any),
-	agentOrch *AgentOrchestrator,
+	worktrees *worktree.Manager,
 ) *ReviewHandler {
 	return &ReviewHandler{
 		tasks:     tasks,
@@ -56,7 +55,7 @@ func newReviewHandler(
 		logger:    logger,
 		prTracker: prTracker,
 		emit:      emit,
-		agentOrch: agentOrch,
+		worktrees: worktrees,
 	}
 }
 
@@ -147,7 +146,7 @@ func (a *App) StartReview(taskID string) error {
 func (r *ReviewHandler) startReviewAgent(t task.Task) error {
 	dir := config.HomeDir()
 	if t.ProjectID != "" {
-		d, err := r.prepareReviewWorktree(t)
+		d, err := r.worktrees.PrepareForReview(t)
 		if err != nil {
 			r.logger.Error("review.worktree", "task_id", t.ID, "err", err)
 		} else {
@@ -176,71 +175,6 @@ func (r *ReviewHandler) startReviewAgent(t task.Task) error {
 	r.logAudit(audit.EventReviewStarted, t.ID, ag.ID, map[string]any{"pr": t.PRNumber})
 	r.logger.Info("review.agent-started", "task_id", t.ID, "agent_id", ag.ID, "pr", t.PRNumber)
 	return nil
-}
-
-func (r *ReviewHandler) prepareReviewWorktree(t task.Task) (string, error) {
-	proj, err := r.projects.Get(t.ProjectID)
-	if err != nil {
-		return "", fmt.Errorf("get project: %w", err)
-	}
-
-	if err := project.FetchOrigin(proj.ClonePath); err != nil {
-		r.logger.Warn("review.worktree.fetch", "project", proj.ID, "err", err)
-	}
-
-	branch, err := github.FetchPRBranch(t.ProjectID, t.PRNumber)
-	if err != nil {
-		return "", fmt.Errorf("fetch pr branch: %w", err)
-	}
-
-	wtPath := filepath.Join(r.agentOrch.worktreesDir, t.DirName())
-	if _, statErr := os.Stat(wtPath); statErr == nil {
-		return wtPath, nil
-	}
-
-	ref := "refs/remotes/origin/" + branch
-	if err := project.CreateWorktreeDetached(proj.ClonePath, wtPath, ref); err != nil {
-		return "", fmt.Errorf("create review worktree: %w", err)
-	}
-
-	r.logger.Info("review.worktree.created", "task_id", t.ID, "path", wtPath, "branch", branch)
-	return wtPath, nil
-}
-
-// prepareFixWorktree checks out the PR's head branch so the agent can rebase and push.
-func (r *ReviewHandler) prepareFixWorktree(t task.Task, prNumber int) (string, error) {
-	proj, err := r.projects.Get(t.ProjectID)
-	if err != nil {
-		return "", fmt.Errorf("get project: %w", err)
-	}
-
-	if err := project.FetchOrigin(proj.ClonePath); err != nil {
-		r.logger.Warn("fix.worktree.fetch", "project", proj.ID, "err", err)
-	}
-
-	branch, err := github.FetchPRBranch(t.ProjectID, prNumber)
-	if err != nil {
-		return "", fmt.Errorf("fetch pr branch: %w", err)
-	}
-
-	wtPath := filepath.Join(r.agentOrch.worktreesDir, t.DirName())
-
-	// Remove stale worktree — previous agent may have left dirty state.
-	if _, statErr := os.Stat(wtPath); statErr == nil {
-		_ = project.RemoveWorktree(proj.ClonePath, wtPath)
-	}
-
-	ref := "refs/remotes/origin/" + branch
-	if err := project.CreateWorktreeExisting(proj.ClonePath, wtPath, ref); err != nil {
-		return "", fmt.Errorf("create fix worktree: %w", err)
-	}
-
-	if err := project.SanitizeWorktree(wtPath); err != nil {
-		r.logger.Warn("fix.worktree.sanitize", "task_id", t.ID, "err", err)
-	}
-
-	r.logger.Info("fix.worktree.created", "task_id", t.ID, "path", wtPath, "branch", branch)
-	return wtPath, nil
 }
 
 func (r *ReviewHandler) maybeCreateReviewTasks(tasks []task.Task, reviewPRs []github.PullRequest) {
@@ -422,9 +356,9 @@ func (r *ReviewHandler) handlePRIssue(issue github.PRIssue) {
 		var d string
 		var wtErr error
 		if issue.Kind == github.PRIssueConflict {
-			d, wtErr = r.prepareFixWorktree(t, issue.PR.Number)
+			d, wtErr = r.worktrees.PrepareForFix(t, issue.PR.Number)
 		} else {
-			d, wtErr = r.agentOrch.prepareWorktree(t)
+			d, wtErr = r.worktrees.PrepareForTask(t)
 		}
 		if wtErr != nil {
 			r.logger.Error("pr-monitor.worktree", "task_id", t.ID, "err", wtErr)
