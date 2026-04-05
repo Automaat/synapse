@@ -27,10 +27,13 @@ export class EntityStore<T extends { id: string }> {
 
   async load(): Promise<void> {
     // Coalesce concurrent callers and throttle to at most one fetch per 500ms.
+    // Initial loads (empty items) bypass the throttle so first render always fetches.
     if (this.inFlight) return this.inFlight
-    const sinceLast = Date.now() - this.lastLoadAt
-    if (sinceLast < 500) return
     const isInitial = this.items.size === 0
+    if (!isInitial) {
+      const sinceLast = Date.now() - this.lastLoadAt
+      if (sinceLast < 500) return
+    }
     if (isInitial) this.loading = true
     this.error = ''
     this.inFlight = (async () => {
