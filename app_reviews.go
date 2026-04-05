@@ -286,6 +286,10 @@ func (r *ReviewHandler) pollAndMonitorPRs() time.Duration {
 			if !r.prTracker.ShouldHandle(issues[i].TaskID, issues[i].Kind) {
 				continue
 			}
+			if issues[i].Kind == github.PRIssueReadyToMerge {
+				r.handleAutoMerge(issues[i])
+				continue
+			}
 			r.handlePRIssue(issues[i])
 		}
 
@@ -311,6 +315,29 @@ func (r *ReviewHandler) pollAndMonitorPRs() time.Duration {
 		return prPollFast
 	}
 	return prPollSlow
+}
+
+func (r *ReviewHandler) handleAutoMerge(issue github.PRIssue) {
+	t, err := r.tasks.Get(issue.TaskID)
+	if err != nil {
+		return
+	}
+
+	proj, err := r.projects.Get(t.ProjectID)
+	if err != nil || proj.Type != project.ProjectTypePet {
+		return
+	}
+
+	if err := github.MergePR(issue.PR.Repository, issue.PR.Number); err != nil {
+		r.logger.Error("auto-merge.failed", "task_id", t.ID, "pr", issue.PR.Number, "err", err)
+		return
+	}
+
+	r.prTracker.MarkHandled(t.ID, issue.Kind)
+	r.logAudit(audit.EventPRAutoMerged, t.ID, "", map[string]any{
+		"pr": issue.PR.Number, "repo": issue.PR.Repository,
+	})
+	r.logger.Info("auto-merge.merged", "task_id", t.ID, "pr", issue.PR.Number)
 }
 
 func (r *ReviewHandler) handlePRIssue(issue github.PRIssue) {
@@ -447,6 +474,9 @@ func prNeedsAttention(prs []github.PullRequest) bool {
 			return true
 		}
 		if prs[i].Mergeable == "CONFLICTING" || prs[i].Mergeable == "UNKNOWN" {
+			return true
+		}
+		if !prs[i].IsDraft && prs[i].Mergeable == "MERGEABLE" && (prs[i].CIStatus == "SUCCESS" || prs[i].CIStatus == "") {
 			return true
 		}
 	}

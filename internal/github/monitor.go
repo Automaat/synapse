@@ -4,8 +4,9 @@ package github
 type PRIssueKind string
 
 const (
-	PRIssueConflict  PRIssueKind = "conflict"
-	PRIssueCIFailure PRIssueKind = "ci-failure"
+	PRIssueConflict      PRIssueKind = "conflict"
+	PRIssueCIFailure     PRIssueKind = "ci-failure"
+	PRIssueReadyToMerge  PRIssueKind = "ready-to-merge"
 )
 
 // PRIssue represents a detected problem on a PR linked to a task.
@@ -90,6 +91,9 @@ func MatchTaskPRs(prs []PullRequest, tasks []TaskMatcher) []PRIssue {
 		}
 		if pr.CIStatus == "FAILURE" {
 			issues = append(issues, PRIssue{Kind: PRIssueCIFailure, TaskID: tm.ID, PR: *pr})
+		}
+		if !pr.IsDraft && pr.Mergeable == "MERGEABLE" && (pr.CIStatus == "SUCCESS" || pr.CIStatus == "") {
+			issues = append(issues, PRIssue{Kind: PRIssueReadyToMerge, TaskID: tm.ID, PR: *pr})
 		}
 	}
 	return issues

@@ -65,8 +65,20 @@ func TestMatchTaskPRs(t *testing.T) {
 			want:  nil,
 		},
 		{
-			name:  "SUCCESS CI no issue",
+			name:  "mergeable with CI success → ready to merge",
 			prs:   []PullRequest{{Number: 42, CIStatus: "SUCCESS", Mergeable: "MERGEABLE"}},
+			tasks: []TaskMatcher{{ID: "t1", PRNumber: 42}},
+			want:  []PRIssue{{Kind: PRIssueReadyToMerge, TaskID: "t1", PR: PullRequest{Number: 42, CIStatus: "SUCCESS", Mergeable: "MERGEABLE"}}},
+		},
+		{
+			name:  "mergeable no CI checks → ready to merge",
+			prs:   []PullRequest{{Number: 42, CIStatus: "", Mergeable: "MERGEABLE"}},
+			tasks: []TaskMatcher{{ID: "t1", PRNumber: 42}},
+			want:  []PRIssue{{Kind: PRIssueReadyToMerge, TaskID: "t1", PR: PullRequest{Number: 42, CIStatus: "", Mergeable: "MERGEABLE"}}},
+		},
+		{
+			name:  "draft PR not ready to merge",
+			prs:   []PullRequest{{Number: 42, CIStatus: "SUCCESS", Mergeable: "MERGEABLE", IsDraft: true}},
 			tasks: []TaskMatcher{{ID: "t1", PRNumber: 42}},
 			want:  nil,
 		},
