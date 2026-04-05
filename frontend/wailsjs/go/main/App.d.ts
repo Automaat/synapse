@@ -56,6 +56,8 @@ export function ListNotifications():Promise<Array<notification.Notification>>;
 
 export function ListProjects():Promise<Array<project.Project>>;
 
+export function ListReviewComments(arg1:string):Promise<Array<task.ReviewComment>>;
+
 export function ListTasks():Promise<Array<task.Task>>;
 
 export function ListTmuxSessions():Promise<Array<tmux.SessionInfo>>;
@@ -71,8 +73,6 @@ export function OpenInTerminal(arg1:string):Promise<void>;
 export function PlanTask(arg1:string):Promise<void>;
 
 export function RegisterSpotlightHotkey():Promise<void>;
-
-export function ListReviewComments(arg1:string):Promise<task.ReviewComment[]>;
 
 export function RejectPlan(arg1:string,arg2:string):Promise<task.Task>;
 
