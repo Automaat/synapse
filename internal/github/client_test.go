@@ -786,3 +786,35 @@ func TestHasPendingReview_error(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestMergePRWith(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		execErr error
+		output  string
+		wantErr bool
+	}{
+		{
+			name:   "success",
+			output: "",
+		},
+		{
+			name:    "exec error",
+			output:  "gh: not found",
+			execErr: fmt.Errorf("exit 1"),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			fe := &fakeExecer{output: []byte(tt.output), err: tt.execErr}
+			err := mergePRWith(fe, "owner/repo", 42)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

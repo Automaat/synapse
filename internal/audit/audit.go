@@ -21,6 +21,7 @@ const (
 	EventPRFixAgentStarted   = "pr_monitor.fix_agent_started"
 	EventPRMerged            = "pr_monitor.merged"
 	EventPRClosed            = "pr_monitor.closed"
+	EventPRAutoMerged        = "pr_monitor.auto_merged"
 	EventReviewStarted       = "review.agent_started"
 	EventReviewPublished     = "review.published"
 )

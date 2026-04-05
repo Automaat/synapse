@@ -192,6 +192,20 @@ func convertPRs(nodes []gqlPR) []PullRequest {
 	return prs
 }
 
+// MergePR merges a pull request using squash strategy.
+func MergePR(repo string, number int) error {
+	return mergePRWith(defaultExecer, repo, number)
+}
+
+func mergePRWith(e execer, repo string, number int) error {
+	out, err := e.run("pr", "merge", fmt.Sprintf("%d", number),
+		"--repo", repo, "--squash")
+	if err != nil {
+		return fmt.Errorf("gh pr merge %d: %s: %w", number, strings.TrimSpace(string(out)), err)
+	}
+	return nil
+}
+
 // MarkReady marks a draft pull request as ready for review.
 func MarkReady(repo string, number int) error {
 	return markReadyWith(defaultExecer, repo, number)
