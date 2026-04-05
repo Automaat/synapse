@@ -32,14 +32,8 @@ jobs:
       - name: Build frontend (needed for go:embed)
         run: cd frontend && npm ci && npm run build
 
-      - name: Run Go tests with coverage
-        run: go test -coverprofile=coverage.out -covermode=atomic ./...
-
-      - uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
-        with:
-          files: coverage.out
-          flags: backend
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Run Go tests
+        run: go test ./...
 
   test-frontend:
     name: Frontend Tests
@@ -59,14 +53,8 @@ jobs:
       - name: Type-check
         run: cd frontend && npm run check
 
-      - name: Run unit tests with coverage
-        run: cd frontend && npx vitest run --coverage --passWithNoTests
-
-      - uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
-        with:
-          files: frontend/coverage/coverage-final.json
-          flags: frontend
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Run unit tests
+        run: cd frontend && npx vitest run --passWithNoTests
 
   lint-go:
     name: Go Lint
