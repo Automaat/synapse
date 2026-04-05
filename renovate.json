@@ -1,6 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "schedule": ["after 10pm every weekday"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "groupName": "patch dependencies"
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "groupName": "minor dependencies"
+    },
+    {
+      "matchPackageNames": ["golang.org/x/*"],
+      "groupName": "golang.org/x updates"
+    },
+    {
+      "matchPackageNames": ["@testing-library/*", "vitest", "@vitest/*"],
+      "groupName": "testing dependencies"
+    }
   ]
 }
