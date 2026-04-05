@@ -98,6 +98,10 @@ export function ListProjects() {
   return window['go']['main']['App']['ListProjects']();
 }
 
+export function ListReviewComments(arg1) {
+  return window['go']['main']['App']['ListReviewComments'](arg1);
+}
+
 export function ListTasks() {
   return window['go']['main']['App']['ListTasks']();
 }
@@ -128,10 +132,6 @@ export function PlanTask(arg1) {
 
 export function RegisterSpotlightHotkey() {
   return window['go']['main']['App']['RegisterSpotlightHotkey']();
-}
-
-export function ListReviewComments(arg1) {
-  return window['go']['main']['App']['ListReviewComments'](arg1);
 }
 
 export function RejectPlan(arg1, arg2) {
