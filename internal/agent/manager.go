@@ -54,16 +54,18 @@ func (m *Manager) Run(cfg RunConfig) (*Agent, error) {
 	id := uuid.NewString()[:8]
 	ctx, cancel := context.WithCancel(m.ctx)
 
+	now := time.Now().UTC()
 	a := &Agent{
-		ID:         id,
-		TaskID:     cfg.TaskID,
-		Name:       cfg.Name,
-		Mode:       cfg.Mode,
-		Model:      cfg.Model,
-		State:      StateRunning,
-		StartedAt:  time.Now().UTC(),
-		cancel:     cancel,
-		sessionCWD: cfg.Dir,
+		ID:          id,
+		TaskID:      cfg.TaskID,
+		Name:        cfg.Name,
+		Mode:        cfg.Mode,
+		Model:       cfg.Model,
+		State:       StateRunning,
+		StartedAt:   now,
+		LastEventAt: now,
+		cancel:      cancel,
+		sessionCWD:  cfg.Dir,
 	}
 	if cfg.Mode == "headless" {
 		a.done = make(chan struct{})
@@ -392,6 +394,7 @@ func (m *Manager) ReconnectSessions(tasks []TaskInfo) int {
 			TaskID:      t.ID,
 			Name:        t.Title,
 			StartedAt:   time.Now().UTC(),
+			LastEventAt: time.Now().UTC(),
 		}
 
 		m.agents[id] = a
