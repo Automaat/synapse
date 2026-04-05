@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import type { agent, task } from '../../wailsjs/go/models.js'
   import { EventsOn } from '../../wailsjs/runtime/runtime.js'
   import { agentState } from '../lib/events.js'
@@ -326,21 +325,20 @@
 
       <div class="flex flex-col gap-1">
         <span class="text-sm font-medium text-surface-500">Status</span>
-        <SegmentedControl
-          orientation="horizontal"
-          value={t.status}
-          onValueChange={(details) => { if (details.value) updateStatus(details.value) }}
-        >
-          <SegmentedControl.Control>
-            <SegmentedControl.Indicator />
+        <div class="relative w-fit">
+          <select
+            class="w-fit appearance-none rounded-lg border border-surface-300 bg-surface-50 py-2 pr-9 pl-3 text-sm font-medium transition-colors hover:border-primary-400 focus:border-primary-500 focus:outline-none dark:border-surface-600 dark:bg-surface-800 dark:hover:border-primary-500"
+            value={t.status}
+            onchange={(e) => updateStatus(e.currentTarget.value)}
+          >
             {#each statusOptions as s}
-              <SegmentedControl.Item value={s.value}>
-                <SegmentedControl.ItemText>{s.label}</SegmentedControl.ItemText>
-                <SegmentedControl.ItemHiddenInput />
-              </SegmentedControl.Item>
+              <option value={s.value}>{s.label}</option>
             {/each}
-          </SegmentedControl.Control>
-        </SegmentedControl>
+          </select>
+          <svg class="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
 
       <div class="flex gap-6 text-sm">
