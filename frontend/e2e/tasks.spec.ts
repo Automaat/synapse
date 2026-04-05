@@ -27,10 +27,9 @@ async function waitForTasks(page: Page) {
   await page.waitForSelector('button:has(h3), :text("No tasks")', { timeout: 10_000 })
 }
 
-// Click a SegmentedControl item by label text within a scoped container
-async function clickSegment(page: Page, scope: 'main' | 'dialog', label: string) {
-  const container = scope === 'dialog' ? page.getByRole('dialog') : page.getByRole('main')
-  await container.locator(`[data-part="item-text"]`, { hasText: label }).first().click()
+// Select a status value on the task detail status dropdown
+async function selectStatus(page: Page, value: string) {
+  await page.getByRole('main').locator('select').selectOption(value)
 }
 
 test.afterAll(async () => {
@@ -127,14 +126,14 @@ test.describe('Task Detail', () => {
     await expect(page.getByText('Implement auth middleware')).toBeVisible()
   })
 
-  test('changes task status via segmented control', async ({ page }) => {
+  test('changes task status via dropdown', async ({ page }) => {
     await goToTaskList(page)
 
     await page.getByRole('button', { name: 'Implement auth middleware' }).click()
     await expect(page.locator('h1', { hasText: 'Implement auth middleware' })).toBeVisible()
 
     // Change status to In Progress
-    await clickSegment(page, 'main', 'In Progress')
+    await selectStatus(page, 'in-progress')
 
     // Wait for backend update
     await page.waitForTimeout(500)
@@ -149,7 +148,7 @@ test.describe('Task Detail', () => {
     // Restore original status
     await page.getByRole('button', { name: 'Implement auth middleware' }).click()
     await expect(page.locator('h1', { hasText: 'Implement auth middleware' })).toBeVisible()
-    await clickSegment(page, 'main', 'Todo')
+    await selectStatus(page, 'todo')
   })
 })
 
