@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
-	"strings"
 
 	"github.com/Automaat/synapse/internal/project"
 )
@@ -55,35 +52,23 @@ func (a *App) DeleteProject(id string) error {
 
 // ListWorktrees returns all git worktrees for the given project's bare clone.
 func (a *App) ListWorktrees(projectID string) ([]project.Worktree, error) {
-	proj, err := a.projects.Get(projectID)
-	if err != nil {
-		return nil, err
-	}
-	return project.ListWorktrees(proj.ClonePath)
+	return a.worktrees.List(projectID)
 }
 
 // OpenInTerminal opens a worktree path in a new Ghostty terminal tab.
 func (a *App) OpenInTerminal(path string) error {
-	clean := filepath.Clean(path)
-	if !strings.HasPrefix(clean, filepath.Clean(a.worktreesDir)) {
-		return fmt.Errorf("path not within worktrees directory")
+	if err := a.worktrees.ValidatePath(path); err != nil {
+		return err
 	}
-	if info, err := os.Stat(clean); err != nil || !info.IsDir() {
-		return fmt.Errorf("path is not a valid directory")
-	}
-	return openDirInGhostty(clean)
+	return openDirInGhostty(path)
 }
 
 // OpenInEditor opens a worktree path in Zed.
 func (a *App) OpenInEditor(path string) error {
-	clean := filepath.Clean(path)
-	if !strings.HasPrefix(clean, filepath.Clean(a.worktreesDir)) {
-		return fmt.Errorf("path not within worktrees directory")
+	if err := a.worktrees.ValidatePath(path); err != nil {
+		return err
 	}
-	if info, err := os.Stat(clean); err != nil || !info.IsDir() {
-		return fmt.Errorf("path is not a valid directory")
-	}
-	return exec.Command("zed", clean).Start()
+	return exec.Command("zed", path).Start()
 }
 
 func openDirInGhostty(dir string) error {

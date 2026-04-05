@@ -99,7 +99,7 @@ func (w *TaskWorkflow) PlanTask(id string) error {
 
 	dir := ""
 	if t.ProjectID != "" {
-		d, wtErr := w.agentOrch.prepareWorktree(t)
+		d, wtErr := w.agentOrch.worktrees.PrepareForTask(t)
 		if wtErr != nil {
 			return fmt.Errorf("worktree required for project task: %w", wtErr)
 		}
@@ -355,7 +355,7 @@ func (w *TaskWorkflow) handleAgentComplete(ag *agent.Agent) {
 
 		// Cleanup worktree if task is done and no other agent is running.
 		if t, err := w.tasks.Get(ag.TaskID); err == nil && t.Status == task.StatusDone {
-			go w.agentOrch.cleanupWorktree(ag.TaskID)
+			go w.agentOrch.worktrees.Remove(ag.TaskID)
 		}
 	}
 }

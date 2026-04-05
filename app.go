@@ -22,6 +22,7 @@ import (
 	"github.com/Automaat/synapse/internal/task"
 	"github.com/Automaat/synapse/internal/tmux"
 	"github.com/Automaat/synapse/internal/watcher"
+	"github.com/Automaat/synapse/internal/worktree"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -45,6 +46,7 @@ type App struct {
 	logDir       string
 	auditDir     string
 	prTracker    *github.IssueTracker
+	worktrees    *worktree.Manager
 	agentOrch    *AgentOrchestrator
 	reviewer     *ReviewHandler
 	workflow     *TaskWorkflow
@@ -114,9 +116,17 @@ func (a *App) startup(ctx context.Context) {
 
 	a.prTracker = github.NewIssueTracker(30 * time.Minute)
 
-	// Initialize domain services (dependency order: agentOrch → reviewer, workflow)
-	a.agentOrch = newAgentOrchestrator(a.tasks, a.projects, a.agents, a.audit, a.logger, a.worktreesDir)
-	a.reviewer = newReviewHandler(a.tasks, a.projects, a.agents, a.audit, a.logger, a.prTracker, emit, a.agentOrch)
+	// Initialize domain services (dependency order: worktrees → agentOrch → reviewer, workflow)
+	a.worktrees = worktree.New(worktree.Config{
+		WorktreesDir:     a.worktreesDir,
+		Projects:         a.projects,
+		Tasks:            a.tasks,
+		Logger:           a.logger,
+		PRBranchResolver: github.FetchPRBranch,
+		AgentChecker:     a.agents.HasRunningAgentForTask,
+	})
+	a.agentOrch = newAgentOrchestrator(a.tasks, a.projects, a.agents, a.audit, a.logger, a.worktrees)
+	a.reviewer = newReviewHandler(a.tasks, a.projects, a.agents, a.audit, a.logger, a.prTracker, emit, a.worktrees)
 	a.workflow = newTaskWorkflow(a.tasks, a.agents, a.audit, a.logger, a.notifier, a.agentOrch)
 
 	a.agents.SetOnComplete(a.workflow.handleAgentComplete)
@@ -129,7 +139,7 @@ func (a *App) startup(ctx context.Context) {
 
 	a.syncSkills()
 	a.reconnectAgents()
-	a.cleanupOrphanedWorktrees()
+	a.worktrees.CleanupOrphaned()
 	a.cleanStaleRuns()
 	a.restartStaleInProgress()
 	a.RegisterSpotlightHotkey()
