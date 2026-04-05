@@ -12,18 +12,20 @@ const ringCap = 100
 
 // Emitter sends notifications via Wails events and optional desktop alerts.
 type Emitter struct {
-	emit    func(event string, data any)
-	buffer  []Notification
-	mu      sync.RWMutex
-	desktop bool
+	emit      func(event string, data any)
+	buffer    []Notification
+	mu        sync.RWMutex
+	desktop   bool
+	desktopFn func(title, message string) error
 }
 
 // New creates an Emitter that broadcasts via the provided emit function.
 func New(emit func(event string, data any)) *Emitter {
 	return &Emitter{
-		emit:    emit,
-		buffer:  make([]Notification, 0, ringCap),
-		desktop: true,
+		emit:      emit,
+		buffer:    make([]Notification, 0, ringCap),
+		desktop:   true,
+		desktopFn: sendDesktopNotification,
 	}
 }
 
@@ -49,7 +51,7 @@ func (e *Emitter) Send(level Level, title, message, taskID, agentID string) {
 	e.emit(events.Notification, n)
 
 	if e.desktop {
-		_ = sendDesktopNotification(title, message)
+		_ = e.desktopFn(title, message)
 	}
 }
 
