@@ -145,6 +145,7 @@ func (a *App) startup(ctx context.Context) {
 	a.RegisterSpotlightHotkey()
 	a.wg.Go(func() { a.orchestratorLoop(ctx) })
 	a.wg.Go(func() { a.prPollLoop(ctx) })
+	a.wg.Go(func() { a.agentWatchdogLoop(ctx) })
 	a.logger.Info("app.started")
 }
 

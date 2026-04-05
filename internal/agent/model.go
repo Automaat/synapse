@@ -26,6 +26,8 @@ type Agent struct {
 	InputTokens  int       `json:"inputTokens,omitempty"`
 	OutputTokens int       `json:"outputTokens,omitempty"`
 	StartedAt    time.Time `json:"startedAt"`
+	LastEventAt  time.Time `json:"lastEventAt"`
+	LogPath      string    `json:"logPath,omitempty"`
 	External     bool      `json:"external"`
 	PID          int       `json:"pid,omitempty"`
 	Command      string    `json:"command,omitempty"`

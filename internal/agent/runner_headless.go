@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os/exec"
 	"strings"
 	"time"
@@ -64,43 +65,15 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 		m.logger.Error("agent.output.file", "id", a.ID, "err", fileErr)
 	}
 	if outFile != nil {
+		a.LogPath = outFile.Name()
 		defer func() { _ = outFile.Close() }()
 	}
 
-	scanner := bufio.NewScanner(stdout)
-	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
-	var lastEmit time.Time
-	for scanner.Scan() {
-		line := scanner.Bytes()
-
-		if outFile != nil {
-			_, _ = outFile.Write(line)
-			_, _ = outFile.WriteString("\n")
-		}
-
-		event, err := parseStreamEvent(line)
-		if err != nil {
-			m.logger.Warn("agent.headless.parse", "id", a.ID, "err", err, "line", string(line))
-			continue
-		}
-		if event.Type == "" {
-			continue
-		}
-
-		a.outputBuffer = append(a.outputBuffer, event)
-		if event.Type == "result" || time.Since(lastEmit) >= headlessEmitInterval {
-			m.emit(events.AgentOutput(a.ID), event)
-			lastEmit = time.Now()
-		}
-
-		if event.Type == "result" {
-			a.SessionID = event.SessionID
-			a.CostUSD += event.CostUSD
-			a.InputTokens += event.InputTokens
-			a.OutputTokens += event.OutputTokens
-			m.logger.Info("agent.headless.result", "id", a.ID, "session_id", event.SessionID, "cost", a.CostUSD)
-		}
+	var logWriter io.Writer
+	if outFile != nil {
+		logWriter = outFile
 	}
+	m.streamHeadlessOutput(a, stdout, logWriter)
 
 	waitErr := cmd.Wait()
 
@@ -120,6 +93,44 @@ func (m *Manager) runHeadless(ctx context.Context, a *Agent, prompt string, allo
 	m.emit(events.AgentState(a.ID), a)
 	if m.onComplete != nil {
 		m.onComplete(a)
+	}
+}
+
+func (m *Manager) streamHeadlessOutput(a *Agent, stdout io.Reader, outFile io.Writer) {
+	scanner := bufio.NewScanner(stdout)
+	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
+	var lastEmit time.Time
+	for scanner.Scan() {
+		line := scanner.Bytes()
+
+		if outFile != nil {
+			_, _ = outFile.Write(line)
+			_, _ = outFile.Write([]byte("\n"))
+		}
+
+		event, err := parseStreamEvent(line)
+		if err != nil {
+			m.logger.Warn("agent.headless.parse", "id", a.ID, "err", err, "line", string(line))
+			continue
+		}
+		if event.Type == "" {
+			continue
+		}
+
+		a.outputBuffer = append(a.outputBuffer, event)
+		a.LastEventAt = time.Now().UTC()
+		if event.Type == "result" || time.Since(lastEmit) >= headlessEmitInterval {
+			m.emit(events.AgentOutput(a.ID), event)
+			lastEmit = time.Now()
+		}
+
+		if event.Type == "result" {
+			a.SessionID = event.SessionID
+			a.CostUSD += event.CostUSD
+			a.InputTokens += event.InputTokens
+			a.OutputTokens += event.OutputTokens
+			m.logger.Info("agent.headless.result", "id", a.ID, "session_id", event.SessionID, "cost", a.CostUSD)
+		}
 	}
 }
 

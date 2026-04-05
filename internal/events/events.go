@@ -11,6 +11,7 @@ const (
 	AgentStatePrefix  = "agent:state:"
 	AgentOutputPrefix = "agent:output:"
 	AgentErrorPrefix  = "agent:error:"
+	AgentStuckPrefix  = "agent:stuck:"
 
 	// Orchestrator events.
 	OrchestratorState = "orchestrator:state"
@@ -33,3 +34,6 @@ func AgentOutput(id string) string { return AgentOutputPrefix + id }
 
 // AgentError returns the agent error event name for the given agent ID.
 func AgentError(id string) string { return AgentErrorPrefix + id }
+
+// AgentStuck returns the agent stuck event name for the given agent ID.
+func AgentStuck(id string) string { return AgentStuckPrefix + id }
