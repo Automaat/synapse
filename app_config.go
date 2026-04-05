@@ -15,12 +15,12 @@ type LoggingSettings struct {
 
 // AppSettings is the shape of data exchanged with the frontend for the config view.
 type AppSettings struct {
-	Agent        config.AgentDefaults       `json:"agent"`
-	Notification config.NotificationConfig  `json:"notification"`
-	Orchestrator config.OrchestratorConfig  `json:"orchestrator"`
-	Logging      LoggingSettings            `json:"logging"`
-	Audit        config.AuditConfig         `json:"audit"`
-	Directories  map[string]string          `json:"directories"`
+	Agent        config.AgentDefaults      `json:"agent"`
+	Notification config.NotificationConfig `json:"notification"`
+	Orchestrator config.OrchestratorConfig `json:"orchestrator"`
+	Logging      LoggingSettings           `json:"logging"`
+	Audit        config.AuditConfig        `json:"audit"`
+	Directories  map[string]string         `json:"directories"`
 }
 
 // GetSettings returns the current app settings for display in the config view.
