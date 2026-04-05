@@ -4,9 +4,9 @@ package github
 type PRIssueKind string
 
 const (
-	PRIssueConflict      PRIssueKind = "conflict"
-	PRIssueCIFailure     PRIssueKind = "ci-failure"
-	PRIssueReadyToMerge  PRIssueKind = "ready-to-merge"
+	PRIssueConflict     PRIssueKind = "conflict"
+	PRIssueCIFailure    PRIssueKind = "ci-failure"
+	PRIssueReadyToMerge PRIssueKind = "ready-to-merge"
 )
 
 // PRIssue represents a detected problem on a PR linked to a task.

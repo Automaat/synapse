@@ -364,6 +364,10 @@ func (r *ReviewHandler) handlePRIssue(issue github.PRIssue) {
 		r.logAudit(audit.EventPRCIFailureDetected, t.ID, "", map[string]any{
 			"pr": issue.PR.Number, "repo": issue.PR.Repository,
 		})
+
+	case github.PRIssueReadyToMerge:
+		// handled by handleAutoMerge, not by agent spawn
+		return
 	}
 
 	dir := ""
