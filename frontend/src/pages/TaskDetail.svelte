@@ -502,7 +502,7 @@
               <button
                 type="button"
                 class="text-xs text-primary-500 hover:underline"
-                onclick={() => onreviewplan!(t.id)}
+                onclick={() => onreviewplan!(t!.id)}
               >Review Plan →</button>
             {/if}
           </div>
