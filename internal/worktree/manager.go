@@ -84,7 +84,7 @@ func (m *Manager) PrepareForTask(t task.Task) (string, error) {
 		return "", fmt.Errorf("get project: %w", err)
 	}
 	if err := project.FetchOrigin(proj.ClonePath); err != nil {
-		m.logger.Warn("worktree.fetch", "project", proj.ID, "err", err)
+		return "", fmt.Errorf("fetch origin: %w", err)
 	}
 
 	branch, err := project.DefaultBranch(proj.ClonePath)
@@ -94,16 +94,21 @@ func (m *Manager) PrepareForTask(t task.Task) (string, error) {
 
 	wtPath := m.PathFor(t)
 	wtBranch := "synapse/" + t.DirName()
+	baseRef := "refs/remotes/origin/" + branch
 
 	if _, statErr := os.Stat(wtPath); statErr == nil {
 		if err := project.SanitizeWorktree(wtPath); err != nil {
 			m.logger.Warn("worktree.sanitize", "task_id", t.ID, "err", err)
 		}
+		if err := project.RebaseOnto(wtPath, baseRef); err != nil {
+			return "", fmt.Errorf("rebase worktree onto %s: %w", baseRef, err)
+		}
+		m.logger.Info("worktree.rebased", "task_id", t.ID, "path", wtPath, "base", baseRef)
 		m.ensureBranch(t, wtBranch)
 		return wtPath, nil
 	}
 
-	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, "refs/remotes/origin/"+branch); err != nil {
+	if err := project.CreateWorktree(proj.ClonePath, wtPath, wtBranch, baseRef); err != nil {
 		return "", fmt.Errorf("create worktree: %w", err)
 	}
 	m.logger.Info("worktree.created", "task_id", t.ID, "path", wtPath)
@@ -233,10 +238,37 @@ func (m *Manager) CleanupOrphaned() {
 			continue
 		}
 
-		if err := os.RemoveAll(wtPath); err != nil {
-			m.logger.Error("worktree.orphan-cleanup", "path", wtPath, "err", err)
-		} else {
-			m.logger.Info("worktree.orphan-cleaned", "path", wtPath)
+		removed := false
+		if exists && t.ProjectID != "" {
+			if proj, perr := m.projects.Get(t.ProjectID); perr == nil {
+				if err := project.RemoveWorktree(proj.ClonePath, wtPath); err != nil {
+					m.logger.Error("worktree.orphan-cleanup", "path", wtPath, "err", err)
+				} else {
+					removed = true
+				}
+			}
+		}
+		if !removed {
+			// Task deleted or project lookup failed — force-remove and prune after.
+			if err := os.RemoveAll(wtPath); err != nil {
+				m.logger.Error("worktree.orphan-cleanup", "path", wtPath, "err", err)
+				continue
+			}
+		}
+		m.logger.Info("worktree.orphan-cleaned", "path", wtPath)
+	}
+
+	// Prune dangling admin entries across all projects.
+	if m.projects == nil {
+		return
+	}
+	projects, err := m.projects.List()
+	if err != nil {
+		return
+	}
+	for i := range projects {
+		if err := project.PruneWorktrees(projects[i].ClonePath); err != nil {
+			m.logger.Warn("worktree.prune", "project", projects[i].ID, "err", err)
 		}
 	}
 }

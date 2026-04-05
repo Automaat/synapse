@@ -187,3 +187,18 @@ func PushUpstream(worktreePath, branch string) error {
 func RemoveWorktree(barePath, worktreePath string) error {
 	return executil.Run(barePath, "git", "worktree", "remove", "--force", worktreePath)
 }
+
+// PruneWorktrees removes stale worktree admin entries from the bare repo.
+func PruneWorktrees(barePath string) error {
+	return executil.Run(barePath, "git", "worktree", "prune")
+}
+
+// RebaseOnto rebases the worktree's current branch onto the given ref.
+// Aborts and returns an error on conflict.
+func RebaseOnto(worktreePath, ref string) error {
+	if err := executil.Run(worktreePath, "git", "rebase", ref); err != nil {
+		_ = executil.Run(worktreePath, "git", "rebase", "--abort")
+		return fmt.Errorf("rebase onto %s: %w", ref, err)
+	}
+	return nil
+}
